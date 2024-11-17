@@ -1,52 +1,13 @@
 import React from 'react';
 
-import reactLogo from './assets/react.svg';
 import './App.css';
 
-import viteLogo from '/vite.svg';
-
-const App = () => {
-  const [
-    count,
-    setCount
-  ] = React.useState(0);
-
-  const handleOnClick = React.useCallback(() => {
-    setCount((count) => {
-      return count + 1;
-    });
-  },
-  [
-  ]);
-
+const App = (): React.ReactNode => {
   return (
     <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img alt="Vite logo" className="logo" src={viteLogo} />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img alt="React logo" className="logo react" src={reactLogo} />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={handleOnClick}>
-          count is
-          {' '}
-          {count}
-        </button>
-        <p>
-          Edit
-          {' '}
-          <code>src/App.tsx</code>
-          {' '}
-          and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <h1>
+        麻雀点数計算ツール
+      </h1>
     </>
   );
 };
