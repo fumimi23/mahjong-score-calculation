@@ -1,0 +1,19 @@
+name: lint
+
+on: [push]
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - name: Setup corepack
+        run: corepack enable
+      - name: Install dependencies
+        run: yarn
+      - name: Check lint
+        run: yarn lint
