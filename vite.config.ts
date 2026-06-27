@@ -4,6 +4,8 @@ import { defineConfig } from 'vite';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  // GitHub Pages（プロジェクトページ）のサブパス配下でも動くよう相対パスにする。
+  base: './',
   plugins: [
     react()
   ],
