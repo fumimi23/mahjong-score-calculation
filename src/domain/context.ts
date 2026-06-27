@@ -17,7 +17,7 @@ export type WinningConditions = {
   readonly rinshan: boolean // 嶺上
 };
 
-// ドラ（→ #6 ドラ選択）。赤ドラは各牌の isRed で表す。
+// ドラ（→ #6 ドラ選択）。赤ドラは各牌の isRedDora で表す。
 export type Dora = {
   readonly indicators: readonly Tile[]
   readonly uraIndicators: readonly Tile[]
