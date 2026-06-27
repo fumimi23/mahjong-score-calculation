@@ -10,9 +10,10 @@ export type Dragon = 'green' | 'red' | 'white';
 
 export type Honor = Dragon | Wind;
 
-// 数牌（萬子・筒子・索子）。isRed は赤ドラかどうか。
+// 数牌（萬子・筒子・索子）。isRedDora は赤ドラ（赤五）かどうか。
+// 三元牌の Dragon 'red'（中）と区別するため、赤ドラのフラグは isRedDora とする。
 export type SuitedTile = {
-  readonly isRed: boolean
+  readonly isRedDora: boolean
   readonly rank: Rank
   readonly suit: Suit
   readonly type: 'suited'
@@ -28,9 +29,9 @@ export type Tile = HonorTile | SuitedTile;
 
 // --- コンストラクタ ---
 
-export const suitedTile = (suit: Suit, rank: Rank, isRed = false): SuitedTile => {
+export const suitedTile = (suit: Suit, rank: Rank, isRedDora = false): SuitedTile => {
   return {
-    isRed,
+    isRedDora,
     rank,
     suit,
     type: 'suited',
