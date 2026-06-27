@@ -167,6 +167,23 @@ describe('calculateHandScore',
         expect(result?.total).toBe(5200);
       });
 
+    it('ドラを加算: 平和+断么九+ドラ1 = 30符3翻 = 3900',
+      () => {
+        const result = calculateHandScore(pinfuHand(),
+          context({
+            dora: {
+              indicators: [
+                suitedTile('man',
+                  2)
+              ],
+              uraIndicators: [
+              ],
+            },
+          }));
+        expect(result?.han).toBe(3);
+        expect(result?.total).toBe(3900);
+      });
+
     it('役満 国士無双 子 ロン = 32000',
       () => {
         const hand = makeHand([

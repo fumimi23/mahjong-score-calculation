@@ -4,6 +4,7 @@ import React, {
 
 import {
   type Hand,
+  isSuited,
   type Tile,
   type Wind,
   type WinningConditions,
@@ -13,7 +14,7 @@ import {
   calculateHandScore, type HandScore
 } from './engine/index.ts';
 import {
-  addTileToHand, ALL_TILES, HAND_SIZE, tileFromKey, tileKey, tileLabel
+  addTileToHand, ALL_TILES, HAND_SIZE, tileFromKey, tileKey, tileLabel, toggleRedFive
 } from './lib/tiles.ts';
 
 const NO_CONDITIONS: WinningConditions = {
@@ -53,6 +54,8 @@ const WINDS: readonly WindOption[] = [
 const tileButtonClass = 'min-w-9 rounded border border-stone-300 bg-white px-2 py-1 '
   + 'text-lg hover:bg-amber-100 active:bg-amber-200';
 
+const MAX_DORA = 5; // ドラ表示牌は最大5枚（4カン + 1）。
+
 const App = (): React.ReactNode => {
   const [
     handTiles,
@@ -79,6 +82,16 @@ const App = (): React.ReactNode => {
     riichi,
     setRiichi
   ] = useState(false);
+  const [
+    doraIndicators,
+    setDoraIndicators
+  ] = useState<Tile[]>([
+  ]);
+  const [
+    uraIndicators,
+    setUraIndicators
+  ] = useState<Tile[]>([
+  ]);
 
   const handlePick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     const tile = tileFromKey(event.currentTarget.dataset.tile ?? '');
@@ -143,6 +156,73 @@ const App = (): React.ReactNode => {
   [
   ]);
 
+  // 手牌の5を赤ドラに切り替える（同色の赤5は1枚まで）。
+  const handleToggleRed = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    const index = Number(event.currentTarget.dataset.index);
+    setHandTiles((prev) => {
+      return toggleRedFive(prev,
+        index);
+    });
+  },
+  [
+  ]);
+
+  const handleAddDora = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
+    const tile = tileFromKey(event.target.value);
+    if (tile === undefined) {
+      return;
+    }
+    setDoraIndicators((prev) => {
+      return prev.length >= MAX_DORA
+        ? prev
+        : [
+            ...prev,
+            tile
+          ];
+    });
+  },
+  [
+  ]);
+
+  const handleRemoveDora = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    const index = Number(event.currentTarget.dataset.index);
+    setDoraIndicators((prev) => {
+      return prev.filter((_, i) => {
+        return i !== index;
+      });
+    });
+  },
+  [
+  ]);
+
+  const handleAddUra = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
+    const tile = tileFromKey(event.target.value);
+    if (tile === undefined) {
+      return;
+    }
+    setUraIndicators((prev) => {
+      return prev.length >= MAX_DORA
+        ? prev
+        : [
+            ...prev,
+            tile
+          ];
+    });
+  },
+  [
+  ]);
+
+  const handleRemoveUra = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    const index = Number(event.currentTarget.dataset.index);
+    setUraIndicators((prev) => {
+      return prev.filter((_, i) => {
+        return i !== index;
+      });
+    });
+  },
+  [
+  ]);
+
   const tileCounts = useMemo(() => {
     const counts = new Map<string, number>();
     for (const tile of handTiles) {
@@ -184,10 +264,8 @@ const App = (): React.ReactNode => {
           riichi,
         },
         dora: {
-          indicators: [
-          ],
-          uraIndicators: [
-          ],
+          indicators: doraIndicators,
+          uraIndicators,
         },
         roundWind,
         seatWind,
@@ -200,7 +278,9 @@ const App = (): React.ReactNode => {
     riichi,
     roundWind,
     seatWind,
-    winType
+    winType,
+    doraIndicators,
+    uraIndicators
   ]);
 
   return (
@@ -251,19 +331,35 @@ const App = (): React.ReactNode => {
               <div className="flex flex-wrap gap-1">
                 {handTiles.map((tile, index) => {
                   const isWinning = index === effectiveWinning;
+                  const canBeRed = isSuited(tile) && tile.rank === 5;
+                  const isRed = isSuited(tile) && tile.isRedDora;
+                  const ringClass = isWinning ? ' ring-2 ring-rose-400' : '';
+                  const redClass = isRed ? ' text-rose-600' : '';
                   return (
                     <span
                       className="inline-flex items-center"
                       key={`${tileKey(tile)}-${index}`}
                     >
                       <button
-                        className={`${tileButtonClass} ${isWinning ? 'ring-2 ring-rose-400' : ''}`}
+                        className={`${tileButtonClass}${ringClass}${redClass}`}
                         data-index={index}
                         onClick={handleSetWinning}
                         type="button"
                       >
                         {tileLabel(tile)}
                       </button>
+                      {canBeRed
+                        ? (
+                            <button
+                              className={`px-1 text-xs ${isRed ? 'font-bold text-rose-600' : 'text-stone-400'}`}
+                              data-index={index}
+                              onClick={handleToggleRed}
+                              type="button"
+                            >
+                              赤
+                            </button>
+                          )
+                        : null}
                       <button
                         className="px-1 text-stone-400 hover:text-rose-500"
                         data-index={index}
@@ -344,6 +440,23 @@ const App = (): React.ReactNode => {
         </label>
       </section>
 
+      <IndicatorRow
+        indicators={doraIndicators}
+        onAdd={handleAddDora}
+        onRemove={handleRemoveDora}
+        title="ドラ表示牌（次の牌がドラ）"
+      />
+      {riichi
+        ? (
+            <IndicatorRow
+              indicators={uraIndicators}
+              onAdd={handleAddUra}
+              onRemove={handleRemoveUra}
+              title="裏ドラ表示牌"
+            />
+          )
+        : null}
+
       <section className="rounded border border-stone-300 p-4">
         <h2 className="mb-2 font-semibold">
           結果
@@ -351,6 +464,74 @@ const App = (): React.ReactNode => {
         <ScoreView score={score} />
       </section>
     </div>
+  );
+};
+
+type IndicatorRowProps = {
+  readonly indicators: readonly Tile[]
+  readonly onAdd: (event: React.ChangeEvent<HTMLSelectElement>) => void
+  readonly onRemove: (event: React.MouseEvent<HTMLButtonElement>) => void
+  readonly title: string
+};
+
+const IndicatorRow = ({
+  indicators, onAdd, onRemove, title,
+}: IndicatorRowProps): React.ReactNode => {
+  return (
+    <section className="space-y-2">
+      <h2 className="font-semibold">
+        {title}
+      </h2>
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          className="rounded border border-stone-300 px-2 py-1"
+          onChange={onAdd}
+          value=""
+        >
+          <option value="">
+            ＋ 追加
+          </option>
+          {ALL_TILES.map((tile) => {
+            const key = tileKey(tile);
+            return (
+              <option key={key} value={key}>
+                {tileLabel(tile)}
+              </option>
+            );
+          })}
+        </select>
+        {indicators.length === 0
+          ? (
+              <span className="text-stone-500">
+                なし
+              </span>
+            )
+          : (
+              <div className="flex flex-wrap gap-1">
+                {indicators.map((tile, index) => {
+                  return (
+                    <span
+                      className="inline-flex items-center"
+                      key={`${tileKey(tile)}-${index}`}
+                    >
+                      <span className="rounded border border-stone-300 bg-white px-2 py-1">
+                        {tileLabel(tile)}
+                      </span>
+                      <button
+                        className="px-1 text-stone-400 hover:text-rose-500"
+                        data-index={index}
+                        onClick={onRemove}
+                        type="button"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+      </div>
+    </section>
   );
 };
 

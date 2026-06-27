@@ -109,3 +109,22 @@ export const addTileToHand = (tiles: readonly Tile[], tile: Tile): Tile[] => {
     tile
   ];
 };
+
+// index の牌（5のみ）の赤ドラ状態を切り替える。同じ色の赤5は1枚までとする。
+export const toggleRedFive = (tiles: readonly Tile[], index: number): Tile[] => {
+  const target = tiles[index];
+  if (target === undefined || !isSuited(target) || target.rank !== 5) {
+    return [
+      ...tiles
+    ];
+  }
+  const makeRed = !target.isRedDora;
+  return tiles.map((tile, i) => {
+    if (!isSuited(tile) || tile.rank !== 5 || tile.suit !== target.suit) {
+      return tile;
+    }
+    return suitedTile(tile.suit,
+      tile.rank,
+      makeRed && i === index);
+  });
+};
