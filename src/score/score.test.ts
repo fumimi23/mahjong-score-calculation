@@ -189,4 +189,95 @@ describe('calculateScore',
             expect(result.fu).toBe(40);
           });
       });
+
+    describe('限定役・配分内訳',
+      () => {
+        it('親ロン 跳満（6翻）= 18000',
+          () => {
+            expect(calculateScore(input({
+              fu: 30,
+              han: 6,
+              isDealer: true,
+            })).total).toBe(18000);
+          });
+
+        it('子ツモ 跳満（6翻）= 3000/6000（計12000）',
+          () => {
+            const result = calculateScore(input({
+              fu: 30,
+              han: 6,
+              winType: 'tsumo',
+            }));
+            expect(result.payments).toStrictEqual({
+              fromDealer: 6000,
+              fromNonDealer: 3000,
+              kind: 'tsumo',
+            });
+            expect(result.total).toBe(12000);
+          });
+
+        it('親ツモ 満貫（5翻）= 4000オール（計12000）',
+          () => {
+            const result = calculateScore(input({
+              fu: 30,
+              han: 5,
+              isDealer: true,
+              winType: 'tsumo',
+            }));
+            expect(result.payments).toStrictEqual({
+              fromDealer: null,
+              fromNonDealer: 4000,
+              kind: 'tsumo',
+            });
+            expect(result.total).toBe(12000);
+          });
+
+        it('子ツモ 30符4翻 = 2000/3900（計7900・100点切り上げの配分）',
+          () => {
+            const result = calculateScore(input({
+              fu: 30,
+              han: 4,
+              winType: 'tsumo',
+            }));
+            expect(result.payments).toStrictEqual({
+              fromDealer: 3900,
+              fromNonDealer: 2000,
+              kind: 'tsumo',
+            });
+            expect(result.total).toBe(7900);
+          });
+      });
+
+    describe('不正な入力',
+      () => {
+        it('翻数が1未満なら例外',
+          () => {
+            expect(() => {
+              return calculateScore(input({
+                fu: 30,
+                han: 0,
+              }));
+            }).toThrow(RangeError);
+          });
+
+        it('符数が20未満なら例外',
+          () => {
+            expect(() => {
+              return calculateScore(input({
+                fu: 19,
+                han: 1,
+              }));
+            }).toThrow(RangeError);
+          });
+
+        it('翻数が整数でないなら例外',
+          () => {
+            expect(() => {
+              return calculateScore(input({
+                fu: 30,
+                han: 1.5,
+              }));
+            }).toThrow(RangeError);
+          });
+      });
   });

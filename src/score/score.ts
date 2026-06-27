@@ -119,6 +119,12 @@ export const calculateScore = (input: ScoreInput): ScoreResult => {
   const {
     fu, han, isDealer, winType,
   } = input;
+  if (!Number.isInteger(han) || han < 1) {
+    throw new RangeError(`翻数は1以上の整数である必要があります: ${han}`);
+  }
+  if (!Number.isInteger(fu) || fu < 20) {
+    throw new RangeError(`符数は20以上の整数である必要があります: ${fu}`);
+  }
   const roundedFu = roundFu(fu);
   const {
     base, limit,
