@@ -179,4 +179,30 @@ describe('calculateFu',
           true,
           false)).toBe(50);
       });
+
+    it('連風牌雀頭は +2（天鳳/M-League ルール、+4 ではない）',
+      () => {
+      // 副底20 + ツモ2 + 嵌張2 + 暗刻(中張)4 = 28。連風牌雀頭が +2 なら30、+4 なら32→40。
+        const hand = makeHand([
+          ...suited('man',
+            '222'),
+          ...suited('pin',
+            '13'),
+          ...suited('sou',
+            '234567'),
+          honorTile('east'),
+          honorTile('east')
+        ],
+        suitedTile('pin',
+          2));
+        const decomposition = decomposeHand(hand)[0];
+        expect(calculateFu(decomposition,
+          context({
+            roundWind: 'east',
+            seatWind: 'east',
+            winType: 'tsumo',
+          }),
+          true,
+          false)).toBe(30);
+      });
   });

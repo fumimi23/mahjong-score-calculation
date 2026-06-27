@@ -77,6 +77,7 @@ export const calculateFu = (
     fu += 2;
   }
 
+  // 役牌雀頭は +2。連風牌（自風かつ場風）も +2 とする（天鳳/M-League 準拠。+4 を採るルールもある）。
   const pair = decomposition.mentsu.find((meld) => {
     return meld.type === 'pair';
   });
