@@ -235,6 +235,70 @@ describe('decomposeHand',
           });
       });
 
+    describe('待ち形（端のケース）',
+      () => {
+        it('両面: 78を持って上端9で和了（辺張ではない）',
+          () => {
+            const concealed = [
+              ...suited('man',
+                '78'),
+              ...suited('pin',
+                '234567'),
+              ...suited('sou',
+                '234'),
+              ...suited('sou',
+                '99')
+            ];
+            const result = decomposeHand(hand(concealed,
+              suitedTile('man',
+                9)));
+            expect(result).toHaveLength(1);
+            expect(result[0].wait).toBe('ryanmen');
+          });
+
+        it('辺張: 89を持って7で和了',
+          () => {
+            const concealed = [
+              ...suited('man',
+                '89'),
+              ...suited('pin',
+                '234567'),
+              ...suited('sou',
+                '234'),
+              ...suited('sou',
+                '99')
+            ];
+            const result = decomposeHand(hand(concealed,
+              suitedTile('man',
+                7)));
+            expect(result).toHaveLength(1);
+            expect(result[0].wait).toBe('penchan');
+          });
+      });
+
+    describe('マルチ待ち（1つの和了牌で複数解）',
+      () => {
+        it('4556 + 5 は嵌張と単騎の2解',
+          () => {
+            const concealed = [
+              ...suited('man',
+                '4556'),
+              ...suited('pin',
+                '234567'),
+              ...suited('sou',
+                '234')
+            ];
+            const result = decomposeHand(hand(concealed,
+              suitedTile('man',
+                5)));
+            const waits = new Set(result.map((decomposition) => {
+              return decomposition.wait;
+            }));
+            expect(waits.has('kanchan')).toBe(true);
+            expect(waits.has('tanki')).toBe(true);
+          });
+      });
+
     describe('和了形でない手',
       () => {
         it('分解できなければ空配列',

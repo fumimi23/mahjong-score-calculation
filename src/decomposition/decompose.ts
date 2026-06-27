@@ -247,6 +247,9 @@ const tileId = (tile: Tile): string => {
   return tile.honor;
 };
 
+// 重複除去キー。winningMentsuIndex は意図的に含めない:
+// 和了牌が「同一形の面子」のどちらを完成させたかだけが違う2解は符・役が一致するため統合してよい。
+// 高点法で意味のある分岐（嵌張/単騎など）は wait が異なるため別解として残る。
 const decompositionKey = (decomposition: HandDecomposition): string => {
   const meldKeys = decomposition.mentsu.map((meld) => {
     const tiles = meld.tiles.map((tile) => {
