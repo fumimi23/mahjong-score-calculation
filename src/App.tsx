@@ -17,15 +17,54 @@ import {
   addTileToHand, ALL_TILES, HAND_SIZE, tileFromKey, tileKey, tileLabel, toggleRedFive
 } from './lib/tiles.ts';
 
-const NO_CONDITIONS: WinningConditions = {
+type RiichiState = 'double' | 'none' | 'riichi';
+
+type FlagKey = 'chankan' | 'haitei' | 'houtei' | 'ippatsu' | 'rinshan';
+
+type FlagState = Record<FlagKey, boolean>;
+
+const NO_FLAGS: FlagState = {
   chankan: false,
-  doubleRiichi: false,
   haitei: false,
   houtei: false,
   ippatsu: false,
-  riichi: false,
   rinshan: false,
 };
+
+type FlagDef = {
+  readonly key: FlagKey
+  readonly label: string
+  // 成立に必要な状況（riichi: 立直中 / tsumo: ツモ / ron: ロン）。
+  readonly requires: 'riichi' | 'ron' | 'tsumo'
+};
+
+const FLAGS: readonly FlagDef[] = [
+  {
+    key: 'ippatsu',
+    label: '一発',
+    requires: 'riichi',
+  },
+  {
+    key: 'haitei',
+    label: '海底',
+    requires: 'tsumo',
+  },
+  {
+    key: 'houtei',
+    label: '河底',
+    requires: 'ron',
+  },
+  {
+    key: 'rinshan',
+    label: '嶺上',
+    requires: 'tsumo',
+  },
+  {
+    key: 'chankan',
+    label: '槍槓',
+    requires: 'ron',
+  }
+];
 
 type WindOption = {
   readonly label: string
@@ -79,9 +118,13 @@ const App = (): React.ReactNode => {
     setSeatWind
   ] = useState<Wind>('east');
   const [
-    riichi,
-    setRiichi
-  ] = useState(false);
+    riichiState,
+    setRiichiState
+  ] = useState<RiichiState>('none');
+  const [
+    flags,
+    setFlags
+  ] = useState<FlagState>(NO_FLAGS);
   const [
     doraIndicators,
     setDoraIndicators
@@ -150,8 +193,26 @@ const App = (): React.ReactNode => {
   [
   ]);
 
-  const handleRiichi = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    setRiichi(event.target.checked);
+  const handleRiichiState = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
+    setRiichiState(event.target.value as RiichiState);
+  },
+  [
+  ]);
+
+  const handleFlag = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const flag = event.currentTarget.dataset.flag as FlagKey | undefined;
+    if (flag === undefined) {
+      return;
+    }
+    const {
+      checked,
+    } = event.currentTarget;
+    setFlags((prev) => {
+      return {
+        ...prev,
+        [flag]: checked,
+      };
+    });
   },
   [
   ]);
@@ -257,12 +318,19 @@ const App = (): React.ReactNode => {
       ],
       winningTile,
     };
+    // 状況役は和了種別・立直状態と矛盾しないように整える（エンジンも同様にガード）。
+    const conditions: WinningConditions = {
+      chankan: flags.chankan && winType === 'ron',
+      doubleRiichi: riichiState === 'double',
+      haitei: flags.haitei && winType === 'tsumo',
+      houtei: flags.houtei && winType === 'ron',
+      ippatsu: flags.ippatsu && riichiState !== 'none',
+      riichi: riichiState === 'riichi',
+      rinshan: flags.rinshan && winType === 'tsumo',
+    };
     return calculateHandScore(hand,
       {
-        conditions: {
-          ...NO_CONDITIONS,
-          riichi,
-        },
+        conditions,
         dora: {
           indicators: doraIndicators,
           uraIndicators,
@@ -275,7 +343,8 @@ const App = (): React.ReactNode => {
   [
     handTiles,
     effectiveWinning,
-    riichi,
+    riichiState,
+    flags,
     roundWind,
     seatWind,
     winType,
@@ -431,13 +500,43 @@ const App = (): React.ReactNode => {
           </select>
         </label>
         <label className="flex items-center gap-1">
-          <input
-            checked={riichi}
-            onChange={handleRiichi}
-            type="checkbox"
-          />
-          リーチ
+          立直
+          <select
+            className="rounded border border-stone-300 px-2 py-1"
+            onChange={handleRiichiState}
+            value={riichiState}
+          >
+            <option value="none">
+              なし
+            </option>
+            <option value="riichi">
+              リーチ
+            </option>
+            <option value="double">
+              ダブリー
+            </option>
+          </select>
         </label>
+        {FLAGS.map((flag) => {
+          const disabled = (flag.requires === 'riichi' && riichiState === 'none')
+            || (flag.requires === 'tsumo' && winType !== 'tsumo')
+            || (flag.requires === 'ron' && winType !== 'ron');
+          return (
+            <label
+              className={`flex items-center gap-1 ${disabled ? 'text-stone-400' : ''}`}
+              key={flag.key}
+            >
+              <input
+                checked={flags[flag.key]}
+                data-flag={flag.key}
+                disabled={disabled}
+                onChange={handleFlag}
+                type="checkbox"
+              />
+              {flag.label}
+            </label>
+          );
+        })}
       </section>
 
       <IndicatorRow
@@ -446,7 +545,7 @@ const App = (): React.ReactNode => {
         onRemove={handleRemoveDora}
         title="ドラ表示牌（次の牌がドラ）"
       />
-      {riichi
+      {riichiState !== 'none'
         ? (
             <IndicatorRow
               indicators={uraIndicators}

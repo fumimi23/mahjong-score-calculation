@@ -18,6 +18,8 @@ describe('App',
         expect(html).toContain('5萬');
         expect(html).toContain('東');
         expect(html).toContain('牌を選んでください');
+        expect(html).toContain('一発');
+        expect(html).toContain('海底');
         expect(html).toContain('ドラ表示牌（次の牌がドラ）');
         expect(html).toContain('14 枚そろえると点数を表示します。');
       });
