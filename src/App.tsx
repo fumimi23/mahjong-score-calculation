@@ -16,8 +16,19 @@ import {
   calculateHandScore, type HandScore
 } from './engine/index.ts';
 import {
-  addTileToHand, ALL_TILES, buildFuro, HAND_SIZE, tileFromKey, tileKey, tileLabel, toggleRedFive
+  addTileToHand,
+  ALL_TILES,
+  buildFuro,
+  HAND_SIZE,
+  tileColorClass,
+  tileFromKey,
+  tileKey,
+  tileLabel,
+  toggleRedFive
 } from './lib/tiles.ts';
+import {
+  type ScorePayments
+} from './score/index.ts';
 
 type RiichiState = 'double' | 'none' | 'riichi';
 
@@ -120,10 +131,25 @@ const WINDS: readonly WindOption[] = [
   }
 ];
 
-const tileButtonClass = 'min-w-9 rounded border border-stone-300 bg-white px-2 py-1 '
-  + 'text-lg hover:bg-amber-100 active:bg-amber-200';
+// 麻雀牌らしい見た目（白い牌・角丸・影）。
+const tileFaceClass = 'inline-flex h-11 w-9 items-center justify-center rounded-md border '
+  + 'border-stone-300 bg-white text-lg font-bold shadow-sm';
+
+const sectionClass = 'space-y-3 rounded-xl border border-stone-200 bg-white p-4 shadow-sm';
+
+const selectClass = 'rounded-md border border-stone-300 bg-white px-2 py-1';
 
 const MAX_DORA = 5; // ドラ表示牌は最大5枚（4カン + 1）。
+
+const paymentsText = (payments: ScorePayments): string => {
+  if (payments.kind === 'ron') {
+    return `放銃者の支払い ${payments.fromDiscarder} 点`;
+  }
+  if (payments.fromDealer === null) {
+    return `子それぞれ ${payments.fromNonDealer} 点（オール）`;
+  }
+  return `親 ${payments.fromDealer} 点 / 子 ${payments.fromNonDealer} 点`;
+};
 
 const App = (): React.ReactNode => {
   const [
@@ -456,294 +482,323 @@ const App = (): React.ReactNode => {
   ]);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-4">
-      <h1 className="text-2xl font-bold">
-        麻雀点数計算ツール
-      </h1>
+    <div className="min-h-screen bg-stone-100">
+      <div className="mx-auto max-w-3xl space-y-5 p-4">
+        <header className="space-y-1">
+          <h1 className="text-2xl font-bold text-stone-800">
+            麻雀点数計算ツール
+          </h1>
+          <p className="text-sm text-stone-500">
+            手牌・条件・ドラを選ぶと点数を計算します。
+          </p>
+        </header>
 
-      <section className="space-y-2">
-        <h2 className="font-semibold">
-          牌を選ぶ（
-          {handTiles.length}
-          /
-          {requiredHandTiles}
-          ）
-        </h2>
-        <div className="flex flex-wrap gap-1">
-          {ALL_TILES.map((tile) => {
-            const key = tileKey(tile);
-            const disabled = isHandFull || (tileCounts.get(key) ?? 0) >= 4;
-            return (
-              <button
-                className={`${tileButtonClass} ${disabled ? 'cursor-not-allowed opacity-40' : ''}`}
-                data-tile={key}
-                disabled={disabled}
-                key={key}
-                onClick={handlePick}
-                type="button"
-              >
-                {tileLabel(tile)}
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="space-y-2">
-        <h2 className="font-semibold">
-          手牌（クリックでアガリ牌に指定 / ×で削除）
-        </h2>
-        {handTiles.length === 0
-          ? (
-              <p className="text-stone-500">
-                牌を選んでください。
-              </p>
-            )
-          : (
-              <div className="flex flex-wrap gap-1">
-                {handTiles.map((tile, index) => {
-                  const isWinning = index === effectiveWinning;
-                  const canBeRed = isSuited(tile) && tile.rank === 5;
-                  const isRed = isSuited(tile) && tile.isRedDora;
-                  const ringClass = isWinning ? ' ring-2 ring-rose-400' : '';
-                  const redClass = isRed ? ' text-rose-600' : '';
-                  return (
-                    <span
-                      className="inline-flex items-center"
-                      key={`${tileKey(tile)}-${index}`}
-                    >
-                      <button
-                        className={`${tileButtonClass}${ringClass}${redClass}`}
-                        data-index={index}
-                        onClick={handleSetWinning}
-                        type="button"
-                      >
-                        {tileLabel(tile)}
-                      </button>
-                      {canBeRed
-                        ? (
-                            <button
-                              className={`px-1 text-xs ${isRed ? 'font-bold text-rose-600' : 'text-stone-400'}`}
-                              data-index={index}
-                              onClick={handleToggleRed}
-                              type="button"
-                            >
-                              赤
-                            </button>
-                          )
-                        : null}
-                      <button
-                        className="px-1 text-stone-400 hover:text-rose-500"
-                        data-index={index}
-                        onClick={handleRemove}
-                        type="button"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-        <button
-          className="rounded border border-stone-300 px-3 py-1 text-sm hover:bg-stone-100"
-          onClick={handleClear}
-          type="button"
-        >
-          クリア
-        </button>
-      </section>
-
-      <section className="space-y-2">
-        <h2 className="font-semibold">
-          副露（鳴き）
-        </h2>
-        <div className="flex flex-wrap items-center gap-2">
-          <select
-            className="rounded border border-stone-300 px-2 py-1"
-            onChange={handleFuroType}
-            value={furoType}
-          >
-            {FURO_TYPES.map((furoOption) => {
-              return (
-                <option key={furoOption.value} value={furoOption.value}>
-                  {furoOption.label}
-                </option>
-              );
-            })}
-          </select>
-          <select
-            className="rounded border border-stone-300 px-2 py-1"
-            onChange={handleFuroBase}
-            value={furoBaseKey}
-          >
+        <section className={sectionClass}>
+          <h2 className="font-semibold">
+            牌を選ぶ（
+            {handTiles.length}
+            /
+            {requiredHandTiles}
+            ）
+          </h2>
+          <div className="flex flex-wrap gap-1">
             {ALL_TILES.map((tile) => {
               const key = tileKey(tile);
+              const disabled = isHandFull || (tileCounts.get(key) ?? 0) >= 4;
               return (
-                <option key={key} value={key}>
+                <button
+                  className={`${tileFaceClass} ${tileColorClass(tile)} `
+                  + `${disabled ? 'cursor-not-allowed opacity-40' : 'hover:bg-amber-50 active:bg-amber-100'}`}
+                  data-tile={key}
+                  disabled={disabled}
+                  key={key}
+                  onClick={handlePick}
+                  type="button"
+                >
                   {tileLabel(tile)}
-                </option>
+                </button>
               );
             })}
-          </select>
+          </div>
+        </section>
+
+        <section className={sectionClass}>
+          <h2 className="font-semibold">
+            手牌（クリックでアガリ牌に指定 / ×で削除）
+          </h2>
+          {handTiles.length === 0
+            ? (
+                <p className="text-stone-500">
+                  牌を選んでください。
+                </p>
+              )
+            : (
+                <div className="flex flex-wrap gap-1">
+                  {handTiles.map((tile, index) => {
+                    const isWinning = index === effectiveWinning;
+                    const canBeRed = isSuited(tile) && tile.rank === 5;
+                    const isRed = isSuited(tile) && tile.isRedDora;
+                    const ringClass = isWinning ? ' ring-2 ring-rose-500 ring-offset-1' : '';
+                    return (
+                      <span
+                        className="inline-flex flex-col items-center"
+                        key={`${tileKey(tile)}-${index}`}
+                      >
+                        <button
+                          className={`${tileFaceClass} ${tileColorClass(tile)}${ringClass}`}
+                          data-index={index}
+                          onClick={handleSetWinning}
+                          title="クリックでアガリ牌に指定"
+                          type="button"
+                        >
+                          {tileLabel(tile)}
+                        </button>
+                        <span className="mt-0.5 flex items-center gap-1 text-xs">
+                          {isWinning
+                            ? (
+                                <span className="text-rose-500">
+                                  和
+                                </span>
+                              )
+                            : null}
+                          {canBeRed
+                            ? (
+                                <button
+                                  className={isRed ? 'font-bold text-red-600' : 'text-stone-400'}
+                                  data-index={index}
+                                  onClick={handleToggleRed}
+                                  type="button"
+                                >
+                                  赤
+                                </button>
+                              )
+                            : null}
+                          <button
+                            className="text-stone-400 hover:text-rose-500"
+                            data-index={index}
+                            onClick={handleRemove}
+                            type="button"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
           <button
             className="rounded border border-stone-300 px-3 py-1 text-sm hover:bg-stone-100"
-            disabled={furos.length >= 4}
-            onClick={handleAddFuro}
+            onClick={handleClear}
             type="button"
           >
-            追加
+            クリア
           </button>
-        </div>
-        {furos.length === 0
-          ? (
-              <p className="text-stone-500">
-                なし（チーは1〜7の数牌のみ）
-              </p>
-            )
-          : (
-              <div className="flex flex-wrap gap-2">
-                {furos.map((furo, index) => {
-                  return (
-                    <span
-                      className="inline-flex items-center rounded border border-stone-300 px-1"
-                      key={`${furo.type}-${tileKey(furo.tiles[0])}-${index}`}
-                    >
-                      <span className="px-1">
-                        {furo.tiles.map((tile) => {
-                          return tileLabel(tile);
-                        }).join('')}
-                      </span>
-                      <button
-                        className="px-1 text-stone-400 hover:text-rose-500"
-                        data-index={index}
-                        onClick={handleRemoveFuro}
-                        type="button"
+        </section>
+
+        <section className={sectionClass}>
+          <h2 className="font-semibold">
+            副露（鳴き）
+          </h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              className={selectClass}
+              onChange={handleFuroType}
+              value={furoType}
+            >
+              {FURO_TYPES.map((furoOption) => {
+                return (
+                  <option key={furoOption.value} value={furoOption.value}>
+                    {furoOption.label}
+                  </option>
+                );
+              })}
+            </select>
+            <select
+              className={selectClass}
+              onChange={handleFuroBase}
+              value={furoBaseKey}
+            >
+              {ALL_TILES.map((tile) => {
+                const key = tileKey(tile);
+                return (
+                  <option key={key} value={key}>
+                    {tileLabel(tile)}
+                  </option>
+                );
+              })}
+            </select>
+            <button
+              className="rounded border border-stone-300 px-3 py-1 text-sm hover:bg-stone-100"
+              disabled={furos.length >= 4}
+              onClick={handleAddFuro}
+              type="button"
+            >
+              追加
+            </button>
+          </div>
+          {furos.length === 0
+            ? (
+                <p className="text-stone-500">
+                  なし（チーは1〜7の数牌のみ）
+                </p>
+              )
+            : (
+                <div className="flex flex-wrap gap-2">
+                  {furos.map((furo, index) => {
+                    return (
+                      <span
+                        className="inline-flex items-center rounded border border-stone-300 px-1"
+                        key={`${furo.type}-${tileKey(furo.tiles[0])}-${index}`}
                       >
-                        ×
-                      </button>
-                    </span>
+                        <span className="flex px-1 font-bold">
+                          {furo.tiles.map((tile, tileIndex) => {
+                            return (
+                              <span
+                                className={`px-0.5 ${tileColorClass(tile)}`}
+                                key={`${tileKey(tile)}-${tileIndex}`}
+                              >
+                                {tileLabel(tile)}
+                              </span>
+                            );
+                          })}
+                        </span>
+                        <button
+                          className="px-1 text-stone-400 hover:text-rose-500"
+                          data-index={index}
+                          onClick={handleRemoveFuro}
+                          type="button"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+        </section>
+
+        <section className={sectionClass}>
+          <h2 className="font-semibold">
+            和了条件
+          </h2>
+          <div className="flex flex-wrap items-center gap-4">
+            <label className="flex items-center gap-1">
+              和了
+              <select
+                className={selectClass}
+                onChange={handleWinType}
+                value={winType}
+              >
+                <option value="ron">
+                  ロン
+                </option>
+                <option value="tsumo">
+                  ツモ
+                </option>
+              </select>
+            </label>
+            <label className="flex items-center gap-1">
+              場風
+              <select
+                className={selectClass}
+                onChange={handleRoundWind}
+                value={roundWind}
+              >
+                {WINDS.map((wind) => {
+                  return (
+                    <option key={wind.value} value={wind.value}>
+                      {wind.label}
+                    </option>
                   );
                 })}
-              </div>
-            )}
-      </section>
-
-      <section className="flex flex-wrap gap-4">
-        <label className="flex items-center gap-1">
-          和了
-          <select
-            className="rounded border border-stone-300 px-2 py-1"
-            onChange={handleWinType}
-            value={winType}
-          >
-            <option value="ron">
-              ロン
-            </option>
-            <option value="tsumo">
-              ツモ
-            </option>
-          </select>
-        </label>
-        <label className="flex items-center gap-1">
-          場風
-          <select
-            className="rounded border border-stone-300 px-2 py-1"
-            onChange={handleRoundWind}
-            value={roundWind}
-          >
-            {WINDS.map((wind) => {
-              return (
-                <option key={wind.value} value={wind.value}>
-                  {wind.label}
-                </option>
-              );
-            })}
-          </select>
-        </label>
-        <label className="flex items-center gap-1">
-          自風
-          <select
-            className="rounded border border-stone-300 px-2 py-1"
-            onChange={handleSeatWind}
-            value={seatWind}
-          >
-            {WINDS.map((wind) => {
-              return (
-                <option key={wind.value} value={wind.value}>
-                  {wind.label}
-                </option>
-              );
-            })}
-          </select>
-        </label>
-        <label className="flex items-center gap-1">
-          立直
-          <select
-            className="rounded border border-stone-300 px-2 py-1"
-            onChange={handleRiichiState}
-            value={riichiState}
-          >
-            <option value="none">
-              なし
-            </option>
-            <option value="riichi">
-              リーチ
-            </option>
-            <option value="double">
-              ダブリー
-            </option>
-          </select>
-        </label>
-        {FLAGS.map((flag) => {
-          const disabled = (flag.requires === 'riichi' && riichiState === 'none')
-            || (flag.requires === 'tsumo' && winType !== 'tsumo')
-            || (flag.requires === 'ron' && winType !== 'ron');
-          return (
-            <label
-              className={`flex items-center gap-1 ${disabled ? 'text-stone-400' : ''}`}
-              key={flag.key}
-            >
-              <input
-                checked={flags[flag.key]}
-                data-flag={flag.key}
-                disabled={disabled}
-                onChange={handleFlag}
-                type="checkbox"
-              />
-              {flag.label}
+              </select>
             </label>
-          );
-        })}
-      </section>
+            <label className="flex items-center gap-1">
+              自風
+              <select
+                className={selectClass}
+                onChange={handleSeatWind}
+                value={seatWind}
+              >
+                {WINDS.map((wind) => {
+                  return (
+                    <option key={wind.value} value={wind.value}>
+                      {wind.label}
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+            <label className="flex items-center gap-1">
+              立直
+              <select
+                className={selectClass}
+                onChange={handleRiichiState}
+                value={riichiState}
+              >
+                <option value="none">
+                  なし
+                </option>
+                <option value="riichi">
+                  リーチ
+                </option>
+                <option value="double">
+                  ダブリー
+                </option>
+              </select>
+            </label>
+            {FLAGS.map((flag) => {
+              const disabled = (flag.requires === 'riichi' && riichiState === 'none')
+                || (flag.requires === 'tsumo' && winType !== 'tsumo')
+                || (flag.requires === 'ron' && winType !== 'ron');
+              return (
+                <label
+                  className={`flex items-center gap-1 ${disabled ? 'text-stone-400' : ''}`}
+                  key={flag.key}
+                >
+                  <input
+                    checked={flags[flag.key]}
+                    data-flag={flag.key}
+                    disabled={disabled}
+                    onChange={handleFlag}
+                    type="checkbox"
+                  />
+                  {flag.label}
+                </label>
+              );
+            })}
+          </div>
+        </section>
 
-      <IndicatorRow
-        indicators={doraIndicators}
-        onAdd={handleAddDora}
-        onRemove={handleRemoveDora}
-        title="ドラ表示牌（次の牌がドラ）"
-      />
-      {riichiState !== 'none'
-        ? (
-            <IndicatorRow
-              indicators={uraIndicators}
-              onAdd={handleAddUra}
-              onRemove={handleRemoveUra}
-              title="裏ドラ表示牌"
-            />
-          )
-        : null}
-
-      <section className="rounded border border-stone-300 p-4">
-        <h2 className="mb-2 font-semibold">
-          結果
-        </h2>
-        <ScoreView
-          handCount={handTiles.length}
-          requiredHandTiles={requiredHandTiles}
-          score={score}
+        <IndicatorRow
+          indicators={doraIndicators}
+          onAdd={handleAddDora}
+          onRemove={handleRemoveDora}
+          title="ドラ表示牌（次の牌がドラ）"
         />
-      </section>
+        {riichiState !== 'none'
+          ? (
+              <IndicatorRow
+                indicators={uraIndicators}
+                onAdd={handleAddUra}
+                onRemove={handleRemoveUra}
+                title="裏ドラ表示牌"
+              />
+            )
+          : null}
+
+        <section className={sectionClass}>
+          <h2 className="font-semibold">
+            結果
+          </h2>
+          <ScoreView
+            handCount={handTiles.length}
+            requiredHandTiles={requiredHandTiles}
+            score={score}
+          />
+        </section>
+      </div>
     </div>
   );
 };
@@ -759,13 +814,13 @@ const IndicatorRow = ({
   indicators, onAdd, onRemove, title,
 }: IndicatorRowProps): React.ReactNode => {
   return (
-    <section className="space-y-2">
+    <section className={sectionClass}>
       <h2 className="font-semibold">
         {title}
       </h2>
       <div className="flex flex-wrap items-center gap-2">
         <select
-          className="rounded border border-stone-300 px-2 py-1"
+          className={selectClass}
           onChange={onAdd}
           value=""
         >
@@ -795,7 +850,7 @@ const IndicatorRow = ({
                       className="inline-flex items-center"
                       key={`${tileKey(tile)}-${index}`}
                     >
-                      <span className="rounded border border-stone-300 bg-white px-2 py-1">
+                      <span className={`${tileFaceClass} ${tileColorClass(tile)}`}>
                         {tileLabel(tile)}
                       </span>
                       <button
@@ -844,42 +899,49 @@ const ScoreView = ({
     );
   }
   const isYakuman = score.yakuman.length > 0;
+  const detail = isYakuman ? '役満' : `${score.han} 翻 ${score.fu} 符`;
   return (
-    <div className="space-y-2">
-      <p className="text-3xl font-bold">
-        {score.total}
-        点
+    <div className="space-y-3">
+      <div className="flex items-baseline gap-2">
+        <span className="text-4xl font-bold text-emerald-700">
+          {score.total}
+        </span>
+        <span className="text-lg text-stone-600">
+          点
+        </span>
+        <span className={`text-sm ${isYakuman ? 'font-semibold text-amber-700' : 'text-stone-500'}`}>
+          {detail}
+        </span>
+      </div>
+      <p className="text-sm text-stone-600">
+        {paymentsText(score.payments)}
       </p>
-      {isYakuman
-        ? (
-            <p className="font-semibold text-amber-700">
-              役満：
-              {score.yakuman.join('・')}
-            </p>
-          )
-        : (
-            <>
-              <p>
-                {score.han}
-                翻
+      <div className="flex flex-wrap gap-1">
+        {isYakuman
+          ? score.yakuman.map((name, index) => {
+            return (
+              <span
+                className="rounded-full bg-amber-100 px-2 py-0.5 text-sm font-semibold text-amber-800"
+                key={`${name}-${index}`}
+              >
+                {name}
+              </span>
+            );
+          })
+          : score.yaku.map((yaku, index) => {
+            return (
+              <span
+                className="rounded-full bg-stone-100 px-2 py-0.5 text-sm"
+                key={`${yaku.name}-${index}`}
+              >
+                {yaku.name}
                 {' '}
-                {score.fu}
-                符
-              </p>
-              <ul className="list-inside list-disc text-sm">
-                {score.yaku.map((yaku) => {
-                  return (
-                    <li key={yaku.name}>
-                      {yaku.name}
-                      {' '}
-                      {yaku.han}
-                      翻
-                    </li>
-                  );
-                })}
-              </ul>
-            </>
-          )}
+                {yaku.han}
+                翻
+              </span>
+            );
+          })}
+      </div>
     </div>
   );
 };

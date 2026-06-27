@@ -50,6 +50,29 @@ export const tileKey = (tile: Tile): string => {
   return `honor-${tile.honor}`;
 };
 
+// 牌の文字色（萬=黒 / 筒=青 / 索=緑 / 中・赤ドラ=赤 / 發=緑）。
+export const tileColorClass = (tile: Tile): string => {
+  if (isSuited(tile)) {
+    if (tile.isRedDora) {
+      return 'text-red-600';
+    }
+    if (tile.suit === 'pin') {
+      return 'text-sky-700';
+    }
+    if (tile.suit === 'sou') {
+      return 'text-emerald-700';
+    }
+    return 'text-stone-900';
+  }
+  if (tile.honor === 'red') {
+    return 'text-red-600';
+  }
+  if (tile.honor === 'green') {
+    return 'text-emerald-700';
+  }
+  return 'text-stone-900';
+};
+
 const SUIT_ORDER: readonly Suit[] = [
   'man',
   'pin',
