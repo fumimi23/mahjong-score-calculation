@@ -738,7 +738,11 @@ const App = (): React.ReactNode => {
         <h2 className="mb-2 font-semibold">
           結果
         </h2>
-        <ScoreView score={score} />
+        <ScoreView
+          handCount={handTiles.length}
+          requiredHandTiles={requiredHandTiles}
+          score={score}
+        />
       </section>
     </div>
   );
@@ -813,16 +817,22 @@ const IndicatorRow = ({
 };
 
 type ScoreViewProps = {
+  readonly handCount: number
+  readonly requiredHandTiles: number
   readonly score: HandScore | null | undefined
 };
 
 const ScoreView = ({
-  score,
+  handCount, requiredHandTiles, score,
 }: ScoreViewProps): React.ReactNode => {
   if (score === undefined) {
+    const shortage = requiredHandTiles - handCount;
+    const message = shortage > 0
+      ? `あと ${shortage} 枚選んでください（${handCount}/${requiredHandTiles}）`
+      : `手牌が ${-shortage} 枚多いです（${handCount}/${requiredHandTiles}）`;
     return (
       <p className="text-stone-500">
-        14 枚そろえると点数を表示します。
+        {message}
       </p>
     );
   }

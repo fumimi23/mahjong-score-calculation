@@ -208,4 +208,14 @@ describe('buildFuro',
         expect(furo?.tiles).toHaveLength(4);
         expect(furo?.calledFrom).toBe('shimocha');
       });
+
+    it('加槓は4枚・鳴き元あり（門前ではない）',
+      () => {
+        const furo = buildFuro('kakan',
+          suitedTile('pin',
+            2));
+        expect(furo?.type).toBe('kakan');
+        expect(furo?.tiles).toHaveLength(4);
+        expect(furo?.calledFrom).toBe('shimocha');
+      });
   });
