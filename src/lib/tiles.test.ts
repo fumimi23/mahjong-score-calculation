@@ -6,7 +6,13 @@ import {
   type Furo, honorTile, isSuited, suitedTile, type Tile
 } from '../domain/index.ts';
 import {
-  addTileToHand, buildFuro, HAND_SIZE, toggleRedFive, toggleRedInFuro
+  addTileToHand,
+  buildFuro,
+  HAND_SIZE,
+  toggleFuroRedFive,
+  toggleHandRedFive,
+  toggleRedFive,
+  toggleRedInFuro
 } from './tiles.ts';
 
 const isRedAt = (tiles: readonly Tile[], index: number): boolean => {
@@ -271,5 +277,107 @@ describe('toggleRedInFuro',
         0,
         0);
         expect(isSuited(result[0].tiles[0]) && result[0].tiles[0].isRedDora).toBe(false);
+      });
+  });
+
+describe('赤5の横断ガード',
+  () => {
+    const ponRed5 = (): Furo => {
+      const furo = toggleRedInFuro([
+        buildFuro('pon',
+          suitedTile('pin',
+            5)) as Furo
+      ],
+      0,
+      0);
+      return furo[0];
+    };
+
+    it('手牌の5筒を赤にすると、副露の赤5筒が解除される',
+      () => {
+        const hand: Tile[] = [
+          suitedTile('pin',
+            5)
+        ];
+        const result = toggleHandRedFive(hand,
+          [
+            ponRed5()
+          ],
+          0);
+        expect(isSuited(result.hand[0]) && result.hand[0].isRedDora).toBe(true);
+        const furoTile = result.furos[0].tiles[0];
+        expect(isSuited(furoTile) && furoTile.isRedDora).toBe(false);
+      });
+
+    it('副露の5筒を赤にすると、手牌の赤5筒が解除される',
+      () => {
+        const hand: Tile[] = [
+          suitedTile('pin',
+            5,
+            true)
+        ];
+        const plainPon = buildFuro('pon',
+          suitedTile('pin',
+            5)) as Furo;
+        const result = toggleFuroRedFive(hand,
+          [
+            plainPon
+          ],
+          0,
+          0);
+        expect(isSuited(result.hand[0]) && result.hand[0].isRedDora).toBe(false);
+        const furoTile = result.furos[0].tiles[0];
+        expect(isSuited(furoTile) && furoTile.isRedDora).toBe(true);
+      });
+
+    it('副露の5筒を赤にすると、別の副露の赤5筒が解除される',
+      () => {
+        const result = toggleFuroRedFive([
+        ],
+        [
+          ponRed5(),
+          buildFuro('pon',
+            suitedTile('pin',
+              5)) as Furo
+        ],
+        1,
+        0);
+        expect(isSuited(result.furos[0].tiles[0]) && result.furos[0].tiles[0].isRedDora).toBe(false);
+        expect(isSuited(result.furos[1].tiles[0]) && result.furos[1].tiles[0].isRedDora).toBe(true);
+      });
+
+    it('別スートの赤5は解除されない（手牌5筒を赤にしても副露の赤5索は残る）',
+      () => {
+        const redSou = toggleRedInFuro([
+          buildFuro('pon',
+            suitedTile('sou',
+              5)) as Furo
+        ],
+        0,
+        0);
+        const result = toggleHandRedFive([
+          suitedTile('pin',
+            5)
+        ],
+        redSou,
+        0);
+        const furoTile = result.furos[0].tiles[0];
+        expect(isSuited(furoTile) && furoTile.isRedDora).toBe(true);
+      });
+
+    it('赤を解除するときは他の場所を触らない',
+      () => {
+        const result = toggleHandRedFive([
+          suitedTile('pin',
+            5,
+            true)
+        ],
+        [
+          ponRed5()
+        ],
+        0);
+        expect(isSuited(result.hand[0]) && result.hand[0].isRedDora).toBe(false);
+        const furoTile = result.furos[0].tiles[0];
+        expect(isSuited(furoTile) && furoTile.isRedDora).toBe(true);
       });
   });

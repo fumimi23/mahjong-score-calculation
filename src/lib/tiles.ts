@@ -196,6 +196,18 @@ export const buildFuro = (type: FuroType, base: Tile): Furo | null => {
   };
 };
 
+// 指定スートの5の赤ドラをすべて解除する。
+export const clearRedFivesOfSuit = (tiles: readonly Tile[], suit: Suit): Tile[] => {
+  return tiles.map((tile) => {
+    if (isSuited(tile) && tile.rank === 5 && tile.suit === suit) {
+      return suitedTile(suit,
+        5,
+        false);
+    }
+    return tile;
+  });
+};
+
 // 副露内の5（tileIndex）の赤ドラ状態を切り替える。同じ面子内の同色5は1枚まで赤。
 export const toggleRedInFuro = (
   furos: readonly Furo[],
@@ -223,4 +235,88 @@ export const toggleRedInFuro = (
       }),
     };
   });
+};
+
+// 手牌＋副露を横断した赤5切り替えの結果。
+export type RedToggleResult = {
+  readonly furos: Furo[]
+  readonly hand: Tile[]
+};
+
+// 手牌の5（index）の赤を切り替える。赤にする場合は同色の赤5を全副露からも解除し、同色1枚を保証する。
+export const toggleHandRedFive = (
+  hand: readonly Tile[],
+  furos: readonly Furo[],
+  index: number
+): RedToggleResult => {
+  const target = hand[index];
+  if (target === undefined || !isSuited(target) || target.rank !== 5) {
+    return {
+      furos: [
+        ...furos
+      ],
+      hand: [
+        ...hand
+      ],
+    };
+  }
+  const makeRed = !target.isRedDora;
+  return {
+    furos: makeRed
+      ? furos.map((furo) => {
+        return {
+          ...furo,
+          tiles: clearRedFivesOfSuit(furo.tiles,
+            target.suit),
+        };
+      })
+      : [
+          ...furos
+        ],
+    hand: toggleRedFive(hand,
+      index),
+  };
+};
+
+// 副露の5（furoIndex, tileIndex）の赤を切り替える。赤にする場合は同色の赤5を手牌・他の副露からも解除する。
+export const toggleFuroRedFive = (
+  hand: readonly Tile[],
+  furos: readonly Furo[],
+  furoIndex: number,
+  tileIndex: number
+): RedToggleResult => {
+  const target = furos[furoIndex]?.tiles[tileIndex];
+  if (target === undefined || !isSuited(target) || target.rank !== 5) {
+    return {
+      furos: [
+        ...furos
+      ],
+      hand: [
+        ...hand
+      ],
+    };
+  }
+  const makeRed = !target.isRedDora;
+  const toggled = toggleRedInFuro(furos,
+    furoIndex,
+    tileIndex);
+  return {
+    furos: makeRed
+      ? toggled.map((furo, fi) => {
+        return fi === furoIndex
+          ? furo
+          : {
+              ...furo,
+              tiles: clearRedFivesOfSuit(furo.tiles,
+                target.suit),
+            };
+      })
+      : toggled,
+    hand: makeRed
+      ? clearRedFivesOfSuit(hand,
+        target.suit)
+      : [
+          ...hand
+        ],
+  };
 };
