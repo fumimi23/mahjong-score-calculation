@@ -209,6 +209,38 @@ describe('calculateHandScore',
         expect(result?.total).toBe(32000);
       });
 
+    it('副露あり: 白ポン(役牌) 子ロン = 30符1翻 = 1000',
+      () => {
+        const furo: Hand['furo'] = [
+          {
+            calledFrom: 'shimocha',
+            tiles: [
+              honorTile('white'),
+              honorTile('white'),
+              honorTile('white')
+            ],
+            type: 'pon',
+          }
+        ];
+        const hand = makeHand([
+          ...suited('man',
+            '234567'),
+          ...suited('pin',
+            '234'),
+          ...suited('sou',
+            '9')
+        ],
+        suitedTile('sou',
+          9),
+        furo);
+        const result = calculateHandScore(hand,
+          context());
+        expect(result?.yaku.map((yaku) => {
+          return yaku.name;
+        })).toContain('役牌（白）');
+        expect(result?.total).toBe(1000);
+      });
+
     it('役無し（鳴き・役牌なし・断么九不成立）は null',
       () => {
         const furo: Hand['furo'] = [

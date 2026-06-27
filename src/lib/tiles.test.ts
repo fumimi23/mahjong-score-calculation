@@ -6,7 +6,7 @@ import {
   honorTile, isSuited, suitedTile, type Tile
 } from '../domain/index.ts';
 import {
-  addTileToHand, HAND_SIZE, toggleRedFive
+  addTileToHand, buildFuro, HAND_SIZE, toggleRedFive
 } from './tiles.ts';
 
 const isRedAt = (tiles: readonly Tile[], index: number): boolean => {
@@ -144,5 +144,78 @@ describe('toggleRedFive',
           0);
         expect(isRedAt(result,
           0)).toBe(false);
+      });
+  });
+
+describe('buildFuro',
+  () => {
+    it('ポンは同じ牌3枚',
+      () => {
+        const furo = buildFuro('pon',
+          suitedTile('man',
+            5));
+        expect(furo?.type).toBe('pon');
+        expect(furo?.tiles).toHaveLength(3);
+        expect(furo?.calledFrom).toBe('shimocha');
+      });
+
+    it('チーは連続3枚・上家から',
+      () => {
+        const furo = buildFuro('chi',
+          suitedTile('man',
+            3));
+        expect(furo?.type).toBe('chi');
+        expect(furo?.tiles).toHaveLength(3);
+        expect(furo?.calledFrom).toBe('kamicha');
+        const ranks = furo?.tiles.map((tile) => {
+          return isSuited(tile) ? tile.rank : 0;
+        });
+        expect(ranks).toStrictEqual([
+          3,
+          4,
+          5
+        ]);
+      });
+
+    it('チーは8以上の数牌では作れない',
+      () => {
+        expect(buildFuro('chi',
+          suitedTile('man',
+            8))).toBeNull();
+      });
+
+    it('チーは字牌では作れない',
+      () => {
+        expect(buildFuro('chi',
+          honorTile('east'))).toBeNull();
+      });
+
+    it('暗槓は4枚・鳴き元なし',
+      () => {
+        const furo = buildFuro('ankan',
+          suitedTile('pin',
+            2));
+        expect(furo?.type).toBe('ankan');
+        expect(furo?.tiles).toHaveLength(4);
+        expect(furo?.calledFrom).toBeNull();
+      });
+
+    it('大明槓は4枚・鳴き元あり',
+      () => {
+        const furo = buildFuro('daiminkan',
+          suitedTile('pin',
+            2));
+        expect(furo?.tiles).toHaveLength(4);
+        expect(furo?.calledFrom).toBe('shimocha');
+      });
+
+    it('加槓は4枚・鳴き元あり（門前ではない）',
+      () => {
+        const furo = buildFuro('kakan',
+          suitedTile('pin',
+            2));
+        expect(furo?.type).toBe('kakan');
+        expect(furo?.tiles).toHaveLength(4);
+        expect(furo?.calledFrom).toBe('shimocha');
       });
   });

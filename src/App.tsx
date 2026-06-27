@@ -3,6 +3,8 @@ import React, {
 } from 'react';
 
 import {
+  type Furo,
+  type FuroType,
   type Hand,
   isSuited,
   type Tile,
@@ -14,7 +16,7 @@ import {
   calculateHandScore, type HandScore
 } from './engine/index.ts';
 import {
-  addTileToHand, ALL_TILES, HAND_SIZE, tileFromKey, tileKey, tileLabel, toggleRedFive
+  addTileToHand, ALL_TILES, buildFuro, HAND_SIZE, tileFromKey, tileKey, tileLabel, toggleRedFive
 } from './lib/tiles.ts';
 
 type RiichiState = 'double' | 'none' | 'riichi';
@@ -63,6 +65,34 @@ const FLAGS: readonly FlagDef[] = [
     key: 'chankan',
     label: '槍槓',
     requires: 'ron',
+  }
+];
+
+type FuroTypeOption = {
+  readonly label: string
+  readonly value: FuroType
+};
+
+const FURO_TYPES: readonly FuroTypeOption[] = [
+  {
+    label: 'ポン',
+    value: 'pon',
+  },
+  {
+    label: 'チー',
+    value: 'chi',
+  },
+  {
+    label: '暗槓',
+    value: 'ankan',
+  },
+  {
+    label: '大明槓',
+    value: 'daiminkan',
+  },
+  {
+    label: '加槓',
+    value: 'kakan',
   }
 ];
 
@@ -135,6 +165,19 @@ const App = (): React.ReactNode => {
     setUraIndicators
   ] = useState<Tile[]>([
   ]);
+  const [
+    furos,
+    setFuros
+  ] = useState<Furo[]>([
+  ]);
+  const [
+    furoType,
+    setFuroType
+  ] = useState<FuroType>('pon');
+  const [
+    furoBaseKey,
+    setFuroBaseKey
+  ] = useState<string>('man-1');
 
   const handlePick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     const tile = tileFromKey(event.currentTarget.dataset.tile ?? '');
@@ -284,28 +327,87 @@ const App = (): React.ReactNode => {
   [
   ]);
 
+  const handleFuroType = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
+    setFuroType(event.target.value as FuroType);
+  },
+  [
+  ]);
+
+  const handleFuroBase = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
+    setFuroBaseKey(event.target.value);
+  },
+  [
+  ]);
+
+  const handleAddFuro = useCallback(() => {
+    const base = tileFromKey(furoBaseKey);
+    if (base === undefined) {
+      return;
+    }
+    const furo = buildFuro(furoType,
+      base);
+    if (furo === null) {
+      return; // チーで不正な牌など。
+    }
+    setFuros((prev) => {
+      return prev.length >= 4
+        ? prev
+        : [
+            ...prev,
+            furo
+          ];
+    });
+  },
+  [
+    furoBaseKey,
+    furoType
+  ]);
+
+  const handleRemoveFuro = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    const index = Number(event.currentTarget.dataset.index);
+    setFuros((prev) => {
+      return prev.filter((_, i) => {
+        return i !== index;
+      });
+    });
+  },
+  [
+  ]);
+
+  // ピッカーの4枚上限は手牌＋副露の合計で判定する。
   const tileCounts = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const tile of handTiles) {
+    const countTile = (tile: Tile): void => {
       const key = tileKey(tile);
       counts.set(key,
         (counts.get(key) ?? 0) + 1);
+    };
+    for (const tile of handTiles) {
+      countTile(tile);
+    }
+    for (const furo of furos) {
+      for (const tile of furo.tiles) {
+        countTile(tile);
+      }
     }
     return counts;
   },
   [
-    handTiles
+    handTiles,
+    furos
   ]);
 
-  const isHandFull = handTiles.length >= HAND_SIZE;
+  // 必要な手牌枚数（副露1組につき3枚減る）。
+  const requiredHandTiles = HAND_SIZE - 3 * furos.length;
+  const isHandFull = handTiles.length >= requiredHandTiles;
 
   const effectiveWinning = winningIndex ?? handTiles.length - 1;
 
   const score = useMemo<HandScore | null | undefined>(() => {
-    if (handTiles.length !== HAND_SIZE) {
+    if (handTiles.length !== requiredHandTiles) {
       return undefined;
     }
-    if (effectiveWinning < 0 || effectiveWinning >= HAND_SIZE) {
+    if (effectiveWinning < 0 || effectiveWinning >= handTiles.length) {
       return undefined;
     }
     const winningTile = handTiles[effectiveWinning];
@@ -314,8 +416,7 @@ const App = (): React.ReactNode => {
     });
     const hand: Hand = {
       concealed,
-      furo: [
-      ],
+      furo: furos,
       winningTile,
     };
     // 状況役は和了種別・立直状態と矛盾しないように整える（エンジンも同様にガード）。
@@ -342,6 +443,7 @@ const App = (): React.ReactNode => {
   },
   [
     handTiles,
+    requiredHandTiles,
     effectiveWinning,
     riichiState,
     flags,
@@ -349,7 +451,8 @@ const App = (): React.ReactNode => {
     seatWind,
     winType,
     doraIndicators,
-    uraIndicators
+    uraIndicators,
+    furos
   ]);
 
   return (
@@ -363,7 +466,7 @@ const App = (): React.ReactNode => {
           牌を選ぶ（
           {handTiles.length}
           /
-          {HAND_SIZE}
+          {requiredHandTiles}
           ）
         </h2>
         <div className="flex flex-wrap gap-1">
@@ -449,6 +552,81 @@ const App = (): React.ReactNode => {
         >
           クリア
         </button>
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="font-semibold">
+          副露（鳴き）
+        </h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            className="rounded border border-stone-300 px-2 py-1"
+            onChange={handleFuroType}
+            value={furoType}
+          >
+            {FURO_TYPES.map((furoOption) => {
+              return (
+                <option key={furoOption.value} value={furoOption.value}>
+                  {furoOption.label}
+                </option>
+              );
+            })}
+          </select>
+          <select
+            className="rounded border border-stone-300 px-2 py-1"
+            onChange={handleFuroBase}
+            value={furoBaseKey}
+          >
+            {ALL_TILES.map((tile) => {
+              const key = tileKey(tile);
+              return (
+                <option key={key} value={key}>
+                  {tileLabel(tile)}
+                </option>
+              );
+            })}
+          </select>
+          <button
+            className="rounded border border-stone-300 px-3 py-1 text-sm hover:bg-stone-100"
+            disabled={furos.length >= 4}
+            onClick={handleAddFuro}
+            type="button"
+          >
+            追加
+          </button>
+        </div>
+        {furos.length === 0
+          ? (
+              <p className="text-stone-500">
+                なし（チーは1〜7の数牌のみ）
+              </p>
+            )
+          : (
+              <div className="flex flex-wrap gap-2">
+                {furos.map((furo, index) => {
+                  return (
+                    <span
+                      className="inline-flex items-center rounded border border-stone-300 px-1"
+                      key={`${furo.type}-${tileKey(furo.tiles[0])}-${index}`}
+                    >
+                      <span className="px-1">
+                        {furo.tiles.map((tile) => {
+                          return tileLabel(tile);
+                        }).join('')}
+                      </span>
+                      <button
+                        className="px-1 text-stone-400 hover:text-rose-500"
+                        data-index={index}
+                        onClick={handleRemoveFuro}
+                        type="button"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
       </section>
 
       <section className="flex flex-wrap gap-4">
@@ -560,7 +738,11 @@ const App = (): React.ReactNode => {
         <h2 className="mb-2 font-semibold">
           結果
         </h2>
-        <ScoreView score={score} />
+        <ScoreView
+          handCount={handTiles.length}
+          requiredHandTiles={requiredHandTiles}
+          score={score}
+        />
       </section>
     </div>
   );
@@ -635,16 +817,22 @@ const IndicatorRow = ({
 };
 
 type ScoreViewProps = {
+  readonly handCount: number
+  readonly requiredHandTiles: number
   readonly score: HandScore | null | undefined
 };
 
 const ScoreView = ({
-  score,
+  handCount, requiredHandTiles, score,
 }: ScoreViewProps): React.ReactNode => {
   if (score === undefined) {
+    const shortage = requiredHandTiles - handCount;
+    const message = shortage > 0
+      ? `あと ${shortage} 枚選んでください（${handCount}/${requiredHandTiles}）`
+      : `手牌が ${-shortage} 枚多いです（${handCount}/${requiredHandTiles}）`;
     return (
       <p className="text-stone-500">
-        14 枚そろえると点数を表示します。
+        {message}
       </p>
     );
   }

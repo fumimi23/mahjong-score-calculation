@@ -1,6 +1,8 @@
 // UI 用の牌ヘルパー（表示ラベル・牌一覧・キー対応）。
 
 import {
+  type Furo,
+  type FuroType,
   type Honor,
   honorTile,
   isSuited,
@@ -127,4 +129,46 @@ export const toggleRedFive = (tiles: readonly Tile[], index: number): Tile[] => 
       tile.rank,
       makeRed && i === index);
   });
+};
+
+// 副露（鳴き）を組み立てる。チーは上家から・数牌の1〜7のみ。作れない場合は null。
+export const buildFuro = (type: FuroType, base: Tile): Furo | null => {
+  if (type === 'chi') {
+    if (!isSuited(base) || base.rank > 7) {
+      return null;
+    }
+    return {
+      calledFrom: 'kamicha',
+      tiles: [
+        base,
+        suitedTile(base.suit,
+          (base.rank + 1) as Rank),
+        suitedTile(base.suit,
+          (base.rank + 2) as Rank)
+      ],
+      type: 'chi',
+    };
+  }
+  if (type === 'pon') {
+    return {
+      calledFrom: 'shimocha',
+      tiles: [
+        base,
+        base,
+        base
+      ],
+      type: 'pon',
+    };
+  }
+  // ankan / daiminkan / kakan
+  return {
+    calledFrom: type === 'ankan' ? null : 'shimocha',
+    tiles: [
+      base,
+      base,
+      base,
+      base
+    ],
+    type,
+  };
 };
