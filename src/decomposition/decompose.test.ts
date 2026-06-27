@@ -299,6 +299,60 @@ describe('decomposeHand',
           });
       });
 
+    describe('字牌・暗槓',
+      () => {
+        it('字牌の単騎待ち',
+          () => {
+            const concealed = [
+              ...suited('man',
+                '234567'),
+              ...suited('pin',
+                '234567'),
+              honorTile('east')
+            ];
+            const result = decomposeHand(hand(concealed,
+              honorTile('east')));
+            expect(result).toHaveLength(1);
+            expect(result[0].wait).toBe('tanki');
+            expect(result[0].mentsu).toHaveLength(5);
+          });
+
+        it('暗槓は isOpen=false の槓子になる',
+          () => {
+            const furo: Hand['furo'] = [
+              {
+                calledFrom: null,
+                tiles: [
+                  suitedTile('pin',
+                    1),
+                  suitedTile('pin',
+                    1),
+                  suitedTile('pin',
+                    1),
+                  suitedTile('pin',
+                    1)
+                ],
+                type: 'ankan',
+              }
+            ];
+            const concealed = [
+              ...suited('man',
+                '234567'),
+              ...suited('pin',
+                '234'),
+              ...suited('sou',
+                '9')
+            ];
+            const result = decomposeHand(hand(concealed,
+              suitedTile('sou',
+                9),
+              furo));
+            expect(result).toHaveLength(1);
+            expect(result[0].mentsu[0].type).toBe('kantsu');
+            expect(result[0].mentsu[0].isOpen).toBe(false);
+          });
+      });
+
     describe('和了形でない手',
       () => {
         it('分解できなければ空配列',

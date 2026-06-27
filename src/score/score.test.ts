@@ -248,6 +248,55 @@ describe('calculateScore',
           });
       });
 
+    describe('限定役（親・ロン）',
+      () => {
+        it('倍満（8翻）= 24000',
+          () => {
+            expect(calculateScore(input({
+              fu: 30,
+              han: 8,
+              isDealer: true,
+            })).total).toBe(24000);
+          });
+
+        it('三倍満（11翻）= 36000',
+          () => {
+            expect(calculateScore(input({
+              fu: 30,
+              han: 11,
+              isDealer: true,
+            })).total).toBe(36000);
+          });
+
+        it('数え役満（13翻）= 48000',
+          () => {
+            expect(calculateScore(input({
+              fu: 30,
+              han: 13,
+              isDealer: true,
+            })).total).toBe(48000);
+          });
+      });
+
+    describe('中間値（子・ロン）',
+      () => {
+        it('30符2翻 = 2000',
+          () => {
+            expect(calculateScore(input({
+              fu: 30,
+              han: 2,
+            })).total).toBe(2000);
+          });
+
+        it('40符2翻 = 2600',
+          () => {
+            expect(calculateScore(input({
+              fu: 40,
+              han: 2,
+            })).total).toBe(2600);
+          });
+      });
+
     describe('不正な入力',
       () => {
         it('翻数が1未満なら例外',
