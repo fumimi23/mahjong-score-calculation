@@ -24,8 +24,8 @@ import {
   tileFromKey,
   tileKey,
   tileLabel,
-  toggleRedFive,
-  toggleRedInFuro
+  toggleFuroRedFive,
+  toggleHandRedFive
 } from './lib/tiles.ts';
 import {
   type ScorePayments
@@ -289,15 +289,18 @@ const App = (): React.ReactNode => {
   [
   ]);
 
-  // 手牌の5を赤ドラに切り替える（同色の赤5は1枚まで）。
+  // 手牌の5を赤ドラに切り替える（同色の赤5は手牌＋副露を通じて1枚まで）。
   const handleToggleRed = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     const index = Number(event.currentTarget.dataset.index);
-    setHandTiles((prev) => {
-      return toggleRedFive(prev,
-        index);
-    });
+    const next = toggleHandRedFive(handTiles,
+      furos,
+      index);
+    setHandTiles(next.hand);
+    setFuros(next.furos);
   },
   [
+    handTiles,
+    furos
   ]);
 
   const handleAddDora = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -403,17 +406,20 @@ const App = (): React.ReactNode => {
   [
   ]);
 
-  // 副露内の5を赤ドラに切り替える。
+  // 副露内の5を赤ドラに切り替える（同色の赤5は手牌＋副露を通じて1枚まで）。
   const handleToggleFuroRed = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     const furoIndex = Number(event.currentTarget.dataset.furo);
     const tileIndex = Number(event.currentTarget.dataset.tile);
-    setFuros((prev) => {
-      return toggleRedInFuro(prev,
-        furoIndex,
-        tileIndex);
-    });
+    const next = toggleFuroRedFive(handTiles,
+      furos,
+      furoIndex,
+      tileIndex);
+    setHandTiles(next.hand);
+    setFuros(next.furos);
   },
   [
+    handTiles,
+    furos
   ]);
 
   // ピッカーの4枚上限は手牌＋副露の合計で判定する。
