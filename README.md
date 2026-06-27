@@ -1,50 +1,59 @@
-# React + TypeScript + Vite
+# 麻雀点数計算ツール
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+手牌・和了条件・ドラを選ぶと点数（役・翻・符・支払い）を計算する Web ツールです。
 
-Currently, two official plugins are available:
+🀄 **公開URL: https://fumimi23.github.io/mahjong-score-calculation/**
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+React + TypeScript + Vite + Tailwind CSS で実装しています。
 
-## Expanding the ESLint configuration
+## 機能
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+- **手牌入力**: 34 種の牌をクリックで選択。アガリ牌の指定、赤ドラ（5）切り替え。
+- **副露（鳴き）**: ポン / チー / 暗槓 / 大明槓 / 加槓。鳴いた面子の赤5にも対応。手牌と並べて1つの手牌として表示。
+- **和了条件**: ツモ / ロン、場風 / 自風、立直 / ダブリー・一発・海底・河底・嶺上・槍槓。
+- **ドラ**: 表ドラ・裏ドラ（立直時）の表示牌指定、赤ドラ。
+- **点数計算**: 面子分解 → 役判定 → 符計算 → 点数算出を通し、複数の分解から最も高い点（高点法）を採用。役・翻・符・支払い内訳を表示。
 
-- Configure the top-level `parserOptions` property like this:
+## 対応範囲・採用ルール
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+- リーチ麻雀の標準役（1 翻〜役満）と役満を網羅。食い下がり対応。
+- 通常手・七対子・国士無双。
+- 数え役満（13 翻以上）は役満扱い。
+- 切り上げ満貫は不採用（例: 4 翻 30 符 = 7700）。
+- 連風牌（自風かつ場風）の雀頭は +2 符（天鳳 / M-League 準拠）。
+- 本場・供託の加算は未対応。
+
+## 開発
+
+前提: Node.js（`.node-version` 参照）、Corepack 経由の Yarn。
+
+```sh
+corepack enable
+yarn            # 依存インストール
+yarn dev        # 開発サーバ
+yarn build      # 型チェック + 本番ビルド
+yarn lint       # ESLint
+yarn format     # ESLint --fix
+yarn test       # Vitest（点数計算ロジックの単体テスト）
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+- **テスト**: 点数計算ロジックは純粋関数として Vitest でカバー（既知の点数表と照合）。
+- **CI**: `main` 以外も含む push で lint + test を実行（`.github/workflows/ci.yml`）。
+- **デプロイ**: `main` への push で GitHub Pages に自動公開（`.github/workflows/deploy.yml`）。
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+## ディレクトリ構成
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
 ```
+src/
+  domain/        牌・面子・手牌・和了条件の型と基本ユーティリティ
+  score/         符・翻から点数を算出（calculateScore）
+  decomposition/ 手牌の面子分解（decomposeHand）
+  yaku/          役判定（judgeYaku）
+  engine/        符計算 + 統合（calculateHandScore、高点法）
+  lib/           UI 用の牌ヘルパー
+  App.tsx        計算画面
+```
+
+## ライセンス
+
+[MIT](./LICENSE)
