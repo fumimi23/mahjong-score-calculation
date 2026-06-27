@@ -195,3 +195,32 @@ export const buildFuro = (type: FuroType, base: Tile): Furo | null => {
     type,
   };
 };
+
+// 副露内の5（tileIndex）の赤ドラ状態を切り替える。同じ面子内の同色5は1枚まで赤。
+export const toggleRedInFuro = (
+  furos: readonly Furo[],
+  furoIndex: number,
+  tileIndex: number
+): Furo[] => {
+  return furos.map((furo, fi) => {
+    if (fi !== furoIndex) {
+      return furo;
+    }
+    const target = furo.tiles[tileIndex];
+    if (target === undefined || !isSuited(target) || target.rank !== 5) {
+      return furo;
+    }
+    const makeRed = !target.isRedDora;
+    return {
+      ...furo,
+      tiles: furo.tiles.map((tile, ti) => {
+        if (!isSuited(tile) || tile.rank !== 5 || tile.suit !== target.suit) {
+          return tile;
+        }
+        return suitedTile(tile.suit,
+          tile.rank,
+          makeRed && ti === tileIndex);
+      }),
+    };
+  });
+};

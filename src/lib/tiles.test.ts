@@ -3,10 +3,10 @@ import {
 } from 'vitest';
 
 import {
-  honorTile, isSuited, suitedTile, type Tile
+  type Furo, honorTile, isSuited, suitedTile, type Tile
 } from '../domain/index.ts';
 import {
-  addTileToHand, buildFuro, HAND_SIZE, toggleRedFive
+  addTileToHand, buildFuro, HAND_SIZE, toggleRedFive, toggleRedInFuro
 } from './tiles.ts';
 
 const isRedAt = (tiles: readonly Tile[], index: number): boolean => {
@@ -217,5 +217,59 @@ describe('buildFuro',
         expect(furo?.type).toBe('kakan');
         expect(furo?.tiles).toHaveLength(4);
         expect(furo?.calledFrom).toBe('shimocha');
+      });
+  });
+
+describe('toggleRedInFuro',
+  () => {
+    const ponOf5 = (): Furo => {
+      const furo = buildFuro('pon',
+        suitedTile('man',
+          5));
+      if (furo === null) {
+        throw new Error('ポンの生成に失敗');
+      }
+      return furo;
+    };
+
+    it('副露内の5を赤に切り替える',
+      () => {
+        const result = toggleRedInFuro([
+          ponOf5()
+        ],
+        0,
+        0);
+        const tile = result[0].tiles[0];
+        expect(isSuited(tile) && tile.isRedDora).toBe(true);
+      });
+
+    it('同じ面子内の赤5は1枚まで（別の5を赤にすると前のは解除）',
+      () => {
+        const reddened = toggleRedInFuro([
+          ponOf5()
+        ],
+        0,
+        0);
+        const result = toggleRedInFuro(reddened,
+          0,
+          1);
+        expect(isSuited(result[0].tiles[0]) && result[0].tiles[0].isRedDora).toBe(false);
+        expect(isSuited(result[0].tiles[1]) && result[0].tiles[1].isRedDora).toBe(true);
+      });
+
+    it('5以外は変化しない',
+      () => {
+        const chi = buildFuro('chi',
+          suitedTile('man',
+            1));
+        if (chi === null) {
+          throw new Error('チーの生成に失敗');
+        }
+        const result = toggleRedInFuro([
+          chi
+        ],
+        0,
+        0);
+        expect(isSuited(result[0].tiles[0]) && result[0].tiles[0].isRedDora).toBe(false);
       });
   });
