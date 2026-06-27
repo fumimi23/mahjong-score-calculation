@@ -1,8 +1,8 @@
-name: lint
+name: ci
 
 on: [push]
 jobs:
-  lint:
+  ci:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -17,3 +17,5 @@ jobs:
         run: yarn
       - name: Check lint
         run: yarn lint
+      - name: Run tests
+        run: yarn test
