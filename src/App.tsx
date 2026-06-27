@@ -5,7 +5,6 @@ import React, {
 import {
   type Hand,
   isSuited,
-  suitedTile,
   type Tile,
   type Wind,
   type WinningConditions,
@@ -15,7 +14,7 @@ import {
   calculateHandScore, type HandScore
 } from './engine/index.ts';
 import {
-  addTileToHand, ALL_TILES, HAND_SIZE, tileFromKey, tileKey, tileLabel
+  addTileToHand, ALL_TILES, HAND_SIZE, tileFromKey, tileKey, tileLabel, toggleRedFive
 } from './lib/tiles.ts';
 
 const NO_CONDITIONS: WinningConditions = {
@@ -157,18 +156,12 @@ const App = (): React.ReactNode => {
   [
   ]);
 
-  // 手牌の5を赤ドラに切り替える。
+  // 手牌の5を赤ドラに切り替える（同色の赤5は1枚まで）。
   const handleToggleRed = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     const index = Number(event.currentTarget.dataset.index);
     setHandTiles((prev) => {
-      return prev.map((tile, i) => {
-        if (i !== index || !isSuited(tile)) {
-          return tile;
-        }
-        return suitedTile(tile.suit,
-          tile.rank,
-          !tile.isRedDora);
-      });
+      return toggleRedFive(prev,
+        index);
     });
   },
   [

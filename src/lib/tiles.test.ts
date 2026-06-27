@@ -3,11 +3,16 @@ import {
 } from 'vitest';
 
 import {
-  honorTile, suitedTile, type Tile
+  honorTile, isSuited, suitedTile, type Tile
 } from '../domain/index.ts';
 import {
-  addTileToHand, HAND_SIZE
+  addTileToHand, HAND_SIZE, toggleRedFive
 } from './tiles.ts';
+
+const isRedAt = (tiles: readonly Tile[], index: number): boolean => {
+  const tile = tiles[index];
+  return isSuited(tile) && tile.isRedDora;
+};
 
 describe('addTileToHand',
   () => {
@@ -82,5 +87,62 @@ describe('addTileToHand',
         const result = addTileToHand(full,
           honorTile('white'));
         expect(result).toHaveLength(HAND_SIZE);
+      });
+  });
+
+describe('toggleRedFive',
+  () => {
+    it('5を赤に切り替える',
+      () => {
+        const tiles: Tile[] = [
+          suitedTile('man',
+            5)
+        ];
+        const result = toggleRedFive(tiles,
+          0);
+        expect(isRedAt(result,
+          0)).toBe(true);
+      });
+
+    it('もう一度で赤を解除する',
+      () => {
+        const tiles: Tile[] = [
+          suitedTile('man',
+            5,
+            true)
+        ];
+        const result = toggleRedFive(tiles,
+          0);
+        expect(isRedAt(result,
+          0)).toBe(false);
+      });
+
+    it('同じ色の赤5は1枚まで（別の5を赤にすると前のは解除）',
+      () => {
+        const tiles: Tile[] = [
+          suitedTile('man',
+            5,
+            true),
+          suitedTile('man',
+            5)
+        ];
+        const result = toggleRedFive(tiles,
+          1);
+        expect(isRedAt(result,
+          0)).toBe(false);
+        expect(isRedAt(result,
+          1)).toBe(true);
+      });
+
+    it('5以外は変化しない',
+      () => {
+        const tiles: Tile[] = [
+          suitedTile('man',
+            4)
+        ];
+        const result = toggleRedFive(tiles,
+          0);
+        expect(isRedAt(result,
+          0)).toBe(false);
       });
   });
