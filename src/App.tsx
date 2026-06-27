@@ -24,7 +24,8 @@ import {
   tileFromKey,
   tileKey,
   tileLabel,
-  toggleRedFive
+  toggleRedFive,
+  toggleRedInFuro
 } from './lib/tiles.ts';
 import {
   type ScorePayments
@@ -240,6 +241,8 @@ const App = (): React.ReactNode => {
     setHandTiles([
     ]);
     setWinningIndex(null);
+    setFuros([
+    ]);
   },
   [
   ]);
@@ -400,6 +403,19 @@ const App = (): React.ReactNode => {
   [
   ]);
 
+  // 副露内の5を赤ドラに切り替える。
+  const handleToggleFuroRed = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    const furoIndex = Number(event.currentTarget.dataset.furo);
+    const tileIndex = Number(event.currentTarget.dataset.tile);
+    setFuros((prev) => {
+      return toggleRedInFuro(prev,
+        furoIndex,
+        tileIndex);
+    });
+  },
+  [
+  ]);
+
   // ピッカーの4枚上限は手牌＋副露の合計で判定する。
   const tileCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -524,83 +540,132 @@ const App = (): React.ReactNode => {
 
         <section className={sectionClass}>
           <h2 className="font-semibold">
-            手牌（クリックでアガリ牌に指定 / ×で削除）
+            手牌
+            <span className="ml-2 text-sm font-normal text-stone-500">
+              （門前
+              {handTiles.length}
+              枚 ＋ 副露
+              {furos.length}
+              組 / 牌クリックでアガリ牌指定）
+            </span>
           </h2>
-          {handTiles.length === 0
+          {handTiles.length === 0 && furos.length === 0
             ? (
                 <p className="text-stone-500">
                   牌を選んでください。
                 </p>
               )
             : (
-                <div className="flex flex-wrap gap-1">
-                  {handTiles.map((tile, index) => {
-                    const isWinning = index === effectiveWinning;
-                    const canBeRed = isSuited(tile) && tile.rank === 5;
-                    const isRed = isSuited(tile) && tile.isRedDora;
-                    const ringClass = isWinning ? ' ring-2 ring-rose-500 ring-offset-1' : '';
-                    return (
-                      <span
-                        className="inline-flex flex-col items-center"
-                        key={`${tileKey(tile)}-${index}`}
-                      >
-                        <button
-                          className={`${tileFaceClass} ${tileColorClass(tile)}${ringClass}`}
-                          data-index={index}
-                          onClick={handleSetWinning}
-                          title="クリックでアガリ牌に指定"
-                          type="button"
+                <div className="flex flex-wrap items-start gap-3">
+                  <div className="flex flex-wrap gap-1">
+                    {handTiles.map((tile, index) => {
+                      const isWinning = index === effectiveWinning;
+                      const canBeRed = isSuited(tile) && tile.rank === 5;
+                      const isRed = isSuited(tile) && tile.isRedDora;
+                      const ringClass = isWinning ? ' ring-2 ring-rose-500 ring-offset-1' : '';
+                      return (
+                        <span
+                          className="inline-flex flex-col items-center"
+                          key={`${tileKey(tile)}-${index}`}
                         >
-                          {tileLabel(tile)}
-                        </button>
-                        <span className="mt-0.5 flex items-center gap-1 text-xs">
-                          {isWinning
-                            ? (
-                                <span className="text-rose-500">
-                                  和
-                                </span>
-                              )
-                            : null}
-                          {canBeRed
-                            ? (
-                                <button
-                                  className={isRed ? 'font-bold text-red-600' : 'text-stone-400'}
-                                  data-index={index}
-                                  onClick={handleToggleRed}
-                                  type="button"
-                                >
-                                  赤
-                                </button>
-                              )
-                            : null}
                           <button
-                            className="text-stone-400 hover:text-rose-500"
+                            className={`${tileFaceClass} ${tileColorClass(tile)}${ringClass}`}
                             data-index={index}
-                            onClick={handleRemove}
+                            onClick={handleSetWinning}
+                            title="クリックでアガリ牌に指定"
                             type="button"
                           >
-                            ×
+                            {tileLabel(tile)}
                           </button>
+                          <span className="mt-0.5 flex items-center gap-1 text-xs">
+                            {isWinning
+                              ? (
+                                  <span className="text-rose-500">
+                                    和
+                                  </span>
+                                )
+                              : null}
+                            {canBeRed
+                              ? (
+                                  <button
+                                    className={isRed ? 'font-bold text-red-600' : 'text-stone-400'}
+                                    data-index={index}
+                                    onClick={handleToggleRed}
+                                    type="button"
+                                  >
+                                    赤
+                                  </button>
+                                )
+                              : null}
+                            <button
+                              className="text-stone-400 hover:text-rose-500"
+                              data-index={index}
+                              onClick={handleRemove}
+                              type="button"
+                            >
+                              ×
+                            </button>
+                          </span>
                         </span>
-                      </span>
+                      );
+                    })}
+                  </div>
+                  {furos.map((furo, furoIndex) => {
+                    const typeLabel = FURO_TYPES.find((option) => {
+                      return option.value === furo.type;
+                    })?.label ?? furo.type;
+                    return (
+                      <div
+                        className="flex flex-col items-center rounded-md bg-stone-100 p-1"
+                        key={`${furo.type}-${tileKey(furo.tiles[0])}-${furoIndex}`}
+                      >
+                        <div className="flex gap-0.5">
+                          {furo.tiles.map((tile, tileIndex) => {
+                            const canBeRed = isSuited(tile) && tile.rank === 5;
+                            const isRed = isSuited(tile) && tile.isRedDora;
+                            return (
+                              <span
+                                className="inline-flex flex-col items-center"
+                                key={`${tileKey(tile)}-${tileIndex}`}
+                              >
+                                <span className={`${tileFaceClass} ${tileColorClass(tile)}`}>
+                                  {tileLabel(tile)}
+                                </span>
+                                {canBeRed
+                                  ? (
+                                      <button
+                                        className={isRed ? 'text-xs font-bold text-red-600' : 'text-xs text-stone-400'}
+                                        data-furo={furoIndex}
+                                        data-tile={tileIndex}
+                                        onClick={handleToggleFuroRed}
+                                        type="button"
+                                      >
+                                        赤
+                                      </button>
+                                    )
+                                  : null}
+                              </span>
+                            );
+                          })}
+                        </div>
+                        <button
+                          className="mt-0.5 text-xs text-stone-500 hover:text-rose-500"
+                          data-index={furoIndex}
+                          onClick={handleRemoveFuro}
+                          type="button"
+                        >
+                          {typeLabel}
+                          {' ×'}
+                        </button>
+                      </div>
                     );
                   })}
                 </div>
               )}
-          <button
-            className="rounded border border-stone-300 px-3 py-1 text-sm hover:bg-stone-100"
-            onClick={handleClear}
-            type="button"
-          >
-            クリア
-          </button>
-        </section>
-
-        <section className={sectionClass}>
-          <h2 className="font-semibold">
-            副露（鳴き）
-          </h2>
           <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm text-stone-500">
+              鳴きを追加：
+            </span>
             <select
               className={selectClass}
               onChange={handleFuroType}
@@ -636,46 +701,14 @@ const App = (): React.ReactNode => {
             >
               追加
             </button>
+            <button
+              className="rounded border border-stone-300 px-3 py-1 text-sm hover:bg-stone-100"
+              onClick={handleClear}
+              type="button"
+            >
+              クリア
+            </button>
           </div>
-          {furos.length === 0
-            ? (
-                <p className="text-stone-500">
-                  なし（チーは1〜7の数牌のみ）
-                </p>
-              )
-            : (
-                <div className="flex flex-wrap gap-2">
-                  {furos.map((furo, index) => {
-                    return (
-                      <span
-                        className="inline-flex items-center rounded border border-stone-300 px-1"
-                        key={`${furo.type}-${tileKey(furo.tiles[0])}-${index}`}
-                      >
-                        <span className="flex px-1 font-bold">
-                          {furo.tiles.map((tile, tileIndex) => {
-                            return (
-                              <span
-                                className={`px-0.5 ${tileColorClass(tile)}`}
-                                key={`${tileKey(tile)}-${tileIndex}`}
-                              >
-                                {tileLabel(tile)}
-                              </span>
-                            );
-                          })}
-                        </span>
-                        <button
-                          className="px-1 text-stone-400 hover:text-rose-500"
-                          data-index={index}
-                          onClick={handleRemoveFuro}
-                          type="button"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    );
-                  })}
-                </div>
-              )}
         </section>
 
         <section className={sectionClass}>

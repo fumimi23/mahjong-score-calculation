@@ -241,6 +241,41 @@ describe('calculateHandScore',
         expect(result?.total).toBe(1000);
       });
 
+    it('副露内の赤5がドラに加算される',
+      () => {
+        const furo: Hand['furo'] = [
+          {
+            calledFrom: 'shimocha',
+            tiles: [
+              suitedTile('pin',
+                5,
+                true),
+              suitedTile('pin',
+                5),
+              suitedTile('pin',
+                5)
+            ],
+            type: 'pon',
+          }
+        ];
+        const hand = makeHand([
+          ...suited('man',
+            '234678'),
+          ...suited('pin',
+            '234'),
+          ...suited('sou',
+            '3')
+        ],
+        suitedTile('sou',
+          3),
+        furo);
+        const result = calculateHandScore(hand,
+          context());
+        expect(result?.yaku.map((yaku) => {
+          return yaku.name;
+        })).toContain('赤ドラ');
+      });
+
     it('役無し（鳴き・役牌なし・断么九不成立）は null',
       () => {
         const furo: Hand['furo'] = [
