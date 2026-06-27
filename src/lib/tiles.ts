@@ -7,8 +7,14 @@ import {
   type Rank,
   type Suit,
   suitedTile,
-  type Tile
+  type Tile,
+  tilesEqual
 } from '../domain/index.ts';
+
+// 和了形の総枚数（4面子1雀頭 = 13 + アガリ牌1）。
+export const HAND_SIZE = 14;
+
+const MAX_PER_KIND = 4;
 
 const SUIT_LABEL: Record<Suit, string> = {
   man: '萬',
@@ -85,4 +91,21 @@ const TILE_BY_KEY = new Map<string, Tile>(ALL_TILES.map((tile) => {
 
 export const tileFromKey = (key: string): Tile | undefined => {
   return TILE_BY_KEY.get(key);
+};
+
+// 牌を手牌に追加する。各牌は4枚まで、手牌は HAND_SIZE 枚まで。追加できない場合は元の内容を返す。
+export const addTileToHand = (tiles: readonly Tile[], tile: Tile): Tile[] => {
+  const sameCount = tiles.filter((current) => {
+    return tilesEqual(current,
+      tile);
+  }).length;
+  if (tiles.length >= HAND_SIZE || sameCount >= MAX_PER_KIND) {
+    return [
+      ...tiles
+    ];
+  }
+  return [
+    ...tiles,
+    tile
+  ];
 };

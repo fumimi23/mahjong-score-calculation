@@ -13,10 +13,8 @@ import {
   calculateHandScore, type HandScore
 } from './engine/index.ts';
 import {
-  ALL_TILES, tileFromKey, tileKey, tileLabel
+  addTileToHand, ALL_TILES, HAND_SIZE, tileFromKey, tileKey, tileLabel
 } from './lib/tiles.ts';
-
-const HAND_SIZE = 14;
 
 const NO_CONDITIONS: WinningConditions = {
   chankan: false,
@@ -88,12 +86,8 @@ const App = (): React.ReactNode => {
       return;
     }
     setHandTiles((prev) => {
-      return prev.length >= HAND_SIZE
-        ? prev
-        : [
-            ...prev,
-            tile
-          ];
+      return addTileToHand(prev,
+        tile);
     });
   },
   [
@@ -148,6 +142,21 @@ const App = (): React.ReactNode => {
   },
   [
   ]);
+
+  const tileCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const tile of handTiles) {
+      const key = tileKey(tile);
+      counts.set(key,
+        (counts.get(key) ?? 0) + 1);
+    }
+    return counts;
+  },
+  [
+    handTiles
+  ]);
+
+  const isHandFull = handTiles.length >= HAND_SIZE;
 
   const effectiveWinning = winningIndex ?? handTiles.length - 1;
 
@@ -210,11 +219,14 @@ const App = (): React.ReactNode => {
         </h2>
         <div className="flex flex-wrap gap-1">
           {ALL_TILES.map((tile) => {
+            const key = tileKey(tile);
+            const disabled = isHandFull || (tileCounts.get(key) ?? 0) >= 4;
             return (
               <button
-                className={tileButtonClass}
-                data-tile={tileKey(tile)}
-                key={tileKey(tile)}
+                className={`${tileButtonClass} ${disabled ? 'cursor-not-allowed opacity-40' : ''}`}
+                data-tile={key}
+                disabled={disabled}
+                key={key}
                 onClick={handlePick}
                 type="button"
               >
