@@ -115,6 +115,50 @@ const resolveBase = (han: number, roundedFu: number): BaseResolution => {
   };
 };
 
+export type ScorePaymentsResult = {
+  readonly payments: ScorePayments
+  readonly total: number
+};
+
+// 基本点から支払い内訳と総得点を求める。役満の点数化（#22）でも再利用する。
+export const paymentsFromBase = (
+  base: number,
+  isDealer: boolean,
+  winType: WinType
+): ScorePaymentsResult => {
+  if (winType === 'ron') {
+    const fromDiscarder = ceil100(base * (isDealer ? 6 : 4));
+    return {
+      payments: {
+        fromDiscarder,
+        kind: 'ron',
+      },
+      total: fromDiscarder,
+    };
+  }
+  if (isDealer) {
+    const fromEach = ceil100(base * 2);
+    return {
+      payments: {
+        fromDealer: null,
+        fromNonDealer: fromEach,
+        kind: 'tsumo',
+      },
+      total: fromEach * 3,
+    };
+  }
+  const fromDealer = ceil100(base * 2);
+  const fromNonDealer = ceil100(base);
+  return {
+    payments: {
+      fromDealer,
+      fromNonDealer,
+      kind: 'tsumo',
+    },
+    total: fromDealer + fromNonDealer * 2,
+  };
+};
+
 export const calculateScore = (input: ScoreInput): ScoreResult => {
   const {
     fu, han, isDealer, winType,
@@ -132,50 +176,19 @@ export const calculateScore = (input: ScoreInput): ScoreResult => {
     han,
     roundedFu
   );
-
-  if (winType === 'ron') {
-    const fromDiscarder = ceil100(base * (isDealer ? 6 : 4));
-    return {
-      base,
-      fu: roundedFu,
-      han,
-      limit,
-      payments: {
-        fromDiscarder,
-        kind: 'ron',
-      },
-      total: fromDiscarder,
-    };
-  }
-
-  if (isDealer) {
-    const fromEach = ceil100(base * 2);
-    return {
-      base,
-      fu: roundedFu,
-      han,
-      limit,
-      payments: {
-        fromDealer: null,
-        fromNonDealer: fromEach,
-        kind: 'tsumo',
-      },
-      total: fromEach * 3,
-    };
-  }
-
-  const fromDealer = ceil100(base * 2);
-  const fromNonDealer = ceil100(base);
+  const {
+    payments, total,
+  } = paymentsFromBase(
+    base,
+    isDealer,
+    winType
+  );
   return {
     base,
     fu: roundedFu,
     han,
     limit,
-    payments: {
-      fromDealer,
-      fromNonDealer,
-      kind: 'tsumo',
-    },
-    total: fromDealer + fromNonDealer * 2,
+    payments,
+    total,
   };
 };
