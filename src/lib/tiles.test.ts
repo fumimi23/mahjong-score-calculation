@@ -345,4 +345,39 @@ describe('赤5の横断ガード',
         expect(isSuited(result.furos[0].tiles[0]) && result.furos[0].tiles[0].isRedDora).toBe(false);
         expect(isSuited(result.furos[1].tiles[0]) && result.furos[1].tiles[0].isRedDora).toBe(true);
       });
+
+    it('別スートの赤5は解除されない（手牌5筒を赤にしても副露の赤5索は残る）',
+      () => {
+        const redSou = toggleRedInFuro([
+          buildFuro('pon',
+            suitedTile('sou',
+              5)) as Furo
+        ],
+        0,
+        0);
+        const result = toggleHandRedFive([
+          suitedTile('pin',
+            5)
+        ],
+        redSou,
+        0);
+        const furoTile = result.furos[0].tiles[0];
+        expect(isSuited(furoTile) && furoTile.isRedDora).toBe(true);
+      });
+
+    it('赤を解除するときは他の場所を触らない',
+      () => {
+        const result = toggleHandRedFive([
+          suitedTile('pin',
+            5,
+            true)
+        ],
+        [
+          ponRed5()
+        ],
+        0);
+        expect(isSuited(result.hand[0]) && result.hand[0].isRedDora).toBe(false);
+        const furoTile = result.furos[0].tiles[0];
+        expect(isSuited(furoTile) && furoTile.isRedDora).toBe(true);
+      });
   });
