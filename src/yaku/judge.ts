@@ -123,7 +123,8 @@ const detectSituationYaku = (input: YakuInput): Yaku[] => {
       name: '立直',
     });
   }
-  if (conditions.ippatsu) {
+  // 一発はリーチ（ダブリー含む）成立が前提。
+  if (conditions.ippatsu && (conditions.riichi || conditions.doubleRiichi)) {
     yaku.push({
       han: 1,
       name: '一発',
@@ -135,25 +136,27 @@ const detectSituationYaku = (input: YakuInput): Yaku[] => {
       name: '門前清自摸和',
     });
   }
-  if (conditions.haitei) {
+  // 海底摸月はツモ専用、河底撈魚はロン専用。
+  if (conditions.haitei && winType === 'tsumo') {
     yaku.push({
       han: 1,
       name: '海底摸月',
     });
   }
-  if (conditions.houtei) {
+  if (conditions.houtei && winType === 'ron') {
     yaku.push({
       han: 1,
       name: '河底撈魚',
     });
   }
-  if (conditions.rinshan) {
+  // 嶺上開花はカン後の嶺上牌ツモ、槍槓はロンでのみ成立。
+  if (conditions.rinshan && winType === 'tsumo') {
     yaku.push({
       han: 1,
       name: '嶺上開花',
     });
   }
-  if (conditions.chankan) {
+  if (conditions.chankan && winType === 'ron') {
     yaku.push({
       han: 1,
       name: '槍槓',
@@ -163,6 +166,16 @@ const detectSituationYaku = (input: YakuInput): Yaku[] => {
 };
 
 // --- 役牌（三元牌・自風・場風）---
+
+const dragonName = (honor: Honor): string => {
+  if (honor === 'green') {
+    return '發';
+  }
+  if (honor === 'red') {
+    return '中';
+  }
+  return '白';
+};
 
 const detectYakuhai = (decomposition: HandDecomposition, context: WinningContext): Yaku[] => {
   const yaku: Yaku[] = [
@@ -175,7 +188,7 @@ const detectYakuhai = (decomposition: HandDecomposition, context: WinningContext
     if (isDragon(head.honor)) {
       yaku.push({
         han: 1,
-        name: '役牌（三元牌）',
+        name: `役牌（${dragonName(head.honor)}）`,
       });
     }
     if (head.honor === context.seatWind) {

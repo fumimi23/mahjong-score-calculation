@@ -160,7 +160,7 @@ describe('judgeYaku',
               9));
             const result = judgeBest(hand,
               context());
-            expect(names(result)).toContain('役牌（三元牌）');
+            expect(names(result)).toContain('役牌（白）');
             expect(result.han).toBe(1);
           });
 
@@ -290,6 +290,54 @@ describe('judgeYaku',
             const result = judgeBest(hand,
               context());
             expect(names(result)).toContain('赤ドラ');
+          });
+      });
+
+    describe('状況役の整合性',
+      () => {
+        it('海底はロンでは成立しない',
+          () => {
+            const result = judgeBest(pinfuHand(),
+              context({
+                conditions: {
+                  haitei: true,
+                },
+              }));
+            expect(names(result)).not.toContain('海底摸月');
+          });
+
+        it('河底はロンで成立する',
+          () => {
+            const result = judgeBest(pinfuHand(),
+              context({
+                conditions: {
+                  houtei: true,
+                },
+              }));
+            expect(names(result)).toContain('河底撈魚');
+          });
+
+        it('一発はリーチ無しでは成立しない',
+          () => {
+            const result = judgeBest(pinfuHand(),
+              context({
+                conditions: {
+                  ippatsu: true,
+                },
+              }));
+            expect(names(result)).not.toContain('一発');
+          });
+
+        it('一発はリーチ時に成立する',
+          () => {
+            const result = judgeBest(pinfuHand(),
+              context({
+                conditions: {
+                  ippatsu: true,
+                  riichi: true,
+                },
+              }));
+            expect(names(result)).toContain('一発');
           });
       });
 
