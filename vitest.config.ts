@@ -6,7 +6,7 @@ export default defineConfig({
   test: {
     include: [
       'src/**/*.test.{ts,tsx}',
-      'tests/**/*.test.{ts,tsx}'
+      'tests/**/*.{test,spec}.{ts,tsx}'
     ],
   },
 });

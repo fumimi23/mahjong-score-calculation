@@ -29,3 +29,9 @@
 - **着手中**: ラベル `in-progress` + セルフアサイン(同時に最大 1 件)
 - **依存**: issue 本文に `Blocked by #N` 行を書く(`next-issue.py` がこれを見て着手候補から除外する)
 - **リリース単位**: マイルストーン。マイルストーン名 = タグ名(`v0.1.0` 形式)、description に版の狙いを 1 行。issue 作成時に `gh issue create --milestone v0.1.0` で束ねる(issue テンプレートの front matter では指定できないので、優先度ラベルと同じくコマンドで付ける)。`next-issue.py` は最も古い open マイルストーンの issue を優先するので、版が閉じないまま次の版の issue が先に選ばれることはない。履歴は GitHub Releases に置き、`CHANGELOG.md` はリポジトリに持たない
+
+## テストの置き場
+
+- 新しいテストは `src/` に同居させず、`tests/spec/`・`tests/unit/`・`tests/invariants/` のいずれかに `*.test.ts(x)` で置く
+- テストからの import は相対パス + 拡張子付きで書く(`../../src/score/score.ts`)。`@/` エイリアスは ESLint の import 解決と Vitest で解決できない
+- 既存の `src/**/*.test.ts(x)` は 3 層に未分類。既知の点数表との照合など約束相当のものを含むので、削除や期待値の変更は spec と同じ重さで扱う

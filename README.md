@@ -25,7 +25,7 @@ React + TypeScript + Vite + Tailwind CSS で実装しています。
 
 ## 開発
 
-前提: Node.js（`.node-version` 参照）、Corepack 経由の Yarn。
+前提: Node.js（`.node-version` 参照）、Corepack 経由の Yarn、Python 3（`scripts/check.sh`・`scripts/next-issue.py`）、gh（`scripts/next-issue.py`・`scripts/release.sh`）。
 
 ```sh
 corepack enable
@@ -54,7 +54,7 @@ git config core.hooksPath .githooks
 
 ## テスト
 
-テストを仕様の正本として扱い、3 層に分ける。
+テストを仕様の正本として扱い、3 層に分ける。新しいテストは `tests/<層>/` に `*.test.ts(x)` で置く。
 
 - `tests/spec/` — 約束の台帳。振る舞いレベルで書き、対応 issue 番号をコメントで併記する。ここにある挙動だけが約束で、それ以外は変更してよい偶然の挙動。
 - `tests/unit/` — 実装都合のテスト。設計の足場で、自由に変更・削除してよい。
@@ -66,7 +66,7 @@ git config core.hooksPath .githooks
 - 1 issue = 1 セッション。着手する issue は `python3 scripts/next-issue.py` で選ぶ（選択規則はこのスクリプトが正本）。
 - issue には優先度ラベル `P0` / `P1` / `P2` を必ず 1 つ付ける。着手中は `in-progress` ラベル + アサイン。
 - 依存は issue 本文に `Blocked by #N` 行で書く。
-- リリース単位はマイルストーン（名前 = タグ名、`v1.0.0` 形式）。open の issue と PR が 0 件になったら `sh scripts/release.sh <タグ>` で Release を切る。
+- リリース単位はマイルストーン（名前 = タグ名、`v1.0.0` 形式）。open の issue と PR が 0 件（かつ closed の issue が 1 件以上）になったら `sh scripts/release.sh <タグ>` で Release を切る。
 
 ## ディレクトリ構成
 
