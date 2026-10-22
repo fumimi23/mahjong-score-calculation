@@ -29,6 +29,9 @@ jobs:
         run: corepack enable
       - name: Install dependencies
         run: yarn
+      # squash マージで main にできたコミットは pre-push フックを通っていないので、公開する成果物そのものをここで検証する。
+      - name: Check
+        run: sh scripts/check.sh
       - name: Build
         run: yarn build
       - name: Setup Pages
