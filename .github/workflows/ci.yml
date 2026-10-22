@@ -15,7 +15,5 @@ jobs:
         run: corepack enable
       - name: Install dependencies
         run: yarn
-      - name: Check lint
-        run: yarn lint
-      - name: Run tests
-        run: yarn test
+      - name: Check
+        run: sh scripts/check.sh

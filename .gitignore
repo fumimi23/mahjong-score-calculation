@@ -36,3 +36,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python (scripts/next-issue.py とそのテスト)
+__pycache__/

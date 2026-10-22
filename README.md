@@ -25,7 +25,7 @@ React + TypeScript + Vite + Tailwind CSS で実装しています。
 
 ## 開発
 
-前提: Node.js（`.node-version` 参照）、Corepack 経由の Yarn。
+前提: Node.js（`.node-version` 参照）、Corepack 経由の Yarn、Python 3（`scripts/check.sh`・`scripts/next-issue.py`）、gh（`scripts/next-issue.py`・`scripts/release.sh`）。
 
 ```sh
 corepack enable
@@ -33,13 +33,40 @@ yarn            # 依存インストール
 yarn dev        # 開発サーバ
 yarn build      # 型チェック + 本番ビルド
 yarn lint       # ESLint
-yarn format     # ESLint --fix
-yarn test       # Vitest（点数計算ロジックの単体テスト）
+yarn test       # Vitest
+sh scripts/check.sh  # CI 一式（lint → 型チェック → テスト）
+sh scripts/fmt.sh    # 整形の適用（ESLint --fix）
 ```
 
-- **テスト**: 点数計算ロジックは純粋関数として Vitest でカバー（既知の点数表と照合）。
-- **CI**: `main` 以外も含む push で lint + test を実行（`.github/workflows/ci.yml`）。
+- **リンター / フォーマッター**: ESLint（整形ルールは @stylistic）。検査は `yarn lint`、整形の適用は `sh scripts/fmt.sh`。
+- **CI**: `scripts/check.sh` が単一の入口（ESLint → `tsc -b` → Vitest → `scripts/next-issue.py` のテスト）。push 前フックと、GitHub Actions の `ci.yml`（全ブランチの push）・`deploy.yml`（公開前）が同じものを実行する。
 - **デプロイ**: `main` への push で GitHub Pages に自動公開（`.github/workflows/deploy.yml`）。
+
+## ローカル CI
+
+push 前に `scripts/check.sh` を実行し、失敗したら push を止める git フックを同梱している。クローンごとに一度有効化する。
+
+```sh
+git config core.hooksPath .githooks
+```
+
+緊急時のみ `git push --no-verify` でスキップできる。
+
+## テスト
+
+テストを仕様の正本として扱い、3 層に分ける。新しいテストは `tests/<層>/` に `*.test.ts(x)` で置く。
+
+- `tests/spec/` — 約束の台帳。振る舞いレベルで書き、対応 issue 番号をコメントで併記する。ここにある挙動だけが約束で、それ以外は変更してよい偶然の挙動。
+- `tests/unit/` — 実装都合のテスト。設計の足場で、自由に変更・削除してよい。
+- `tests/invariants/` — 横断不変条件（個別機能ではなく全体を走査して成り立つ性質）。
+- `src/**/*.test.ts(x)` の同居テストは 3 層に未分類。既知の点数表との照合など約束相当のものを含む。
+
+## issue 運用
+
+- 1 issue = 1 セッション。着手する issue は `python3 scripts/next-issue.py` で選ぶ（選択規則はこのスクリプトが正本）。
+- issue には優先度ラベル `P0` / `P1` / `P2` を必ず 1 つ付ける。着手中は `in-progress` ラベル + アサイン。
+- 依存は issue 本文に `Blocked by #N` 行で書く。
+- リリース単位はマイルストーン（名前 = タグ名、`v1.0.0` 形式）。open の issue と PR が 0 件（かつ closed の issue が 1 件以上）になったら `sh scripts/release.sh <タグ>` で Release を切る。
 
 ## ディレクトリ構成
 
@@ -52,6 +79,8 @@ src/
   engine/        符計算 + 統合（calculateHandScore、高点法）
   lib/           UI 用の牌ヘルパー
   App.tsx        計算画面
+tests/           spec / unit / invariants の 3 層
+scripts/         check.sh（CI の入口）・fmt.sh・next-issue.py・release.sh
 ```
 
 ## ライセンス
